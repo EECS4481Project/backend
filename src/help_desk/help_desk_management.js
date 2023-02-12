@@ -1,3 +1,5 @@
+// NOTE: Currently no one is assigned to this
+
 // Transfer anon user to a different agent
 
 // Set user to online/offline (when socket opens/closes)
