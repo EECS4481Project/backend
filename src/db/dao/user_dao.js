@@ -1,5 +1,5 @@
 // database access object for users
-const user = require('./db_factory').user
+const user = require('../db_factory').user
 
 /**
  * Returns a user for the given username.
