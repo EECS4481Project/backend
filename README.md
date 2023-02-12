@@ -42,7 +42,7 @@ to the `prod` branch once your feature is done.
 
 
 ### Examples for getting started:
-- Simple POST request that takes a JSON with a `username` field and returns it [here](https://github.com/EECS4481Project/backend/blob/f27928c990a76cb7a410429ee874d5c6ab765c32/src/auth/auth.js). Note that for this to work, we have to add it's router to our `app` in `main.js` via:
+- Simple POST request that takes a JSON with a `username` field and returns it [here](https://github.com/EECS4481Project/backend/blob/f27928c990a76cb7a410429ee874d5c6ab765c32/src/auth/auth.js). Note that to expose the routes, we have to add the files router to our `app` in `main.js` via:
 ```javascript
 const auth = require('./auth/auth');
 app.use('/auth', auth.router);
