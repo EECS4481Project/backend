@@ -29,9 +29,9 @@ to the `prod` branch once your feature is done.
   - `/src/db/schema/` are schemas for our db objects.
   - `/src/db/dao/` are db access objects -- ie. helper functions for making db calls. Ik these seem silly as we could make db calls directly from our code, but they're helpful for mocking db calls in our tests.
   - `/src/db/db_factory.js` returns db objects for our `/src/db/dao/` files to use.
-- `/src/.env` is our dev env file. Variables here can be accessed in JS via `process.env.VAR_NAME`.
+- `/src/.env` is our dev env file. Variables here can be accessed in JS via `process.env.VAR_NAME` upon importing `dotenv`.
 - `/tst/*.test.js` are test files that correspond with a given src file.
-- The subdirectories with `/src` are specific features.
+- The subdirectories within `/src` are specific features.
 
 
 ### Node Specific files:
