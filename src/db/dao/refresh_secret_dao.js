@@ -2,13 +2,15 @@ const refreshSecret = require('../db_factory').refreshSecret;
 
 /**
  * Stores a given encrypted secret -- to be used for refresh tokens.
+ * @param {string} username
  * @param {string} encryptedSecret encrypted secret to store.
  * @returns the id of the stored refresh token.s
  * @throws if there is an error while writing to db.
  */
-const storeRefreshSecret = async (encryptedSecret) => {
+const storeRefreshSecret = async (username, encryptedSecret) => {
     try {
         const created = await refreshSecret.create({
+            username: username,
             secret: encryptedSecret
         });
         return created._id;

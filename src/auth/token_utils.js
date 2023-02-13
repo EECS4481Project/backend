@@ -19,7 +19,7 @@ if (!isProd()) {
  */
 const setNewAuthAndRefreshToken = async (agent, res) => {
     const authToken = await generateAuthToken(agent.username, agent.firstName, agent.lastName, agent.isAdmin);
-    const refreshToken = await generateRefreshToken();
+    const refreshToken = await generateRefreshToken(agent.username);
     if (refreshToken == null) {
         return res.sendStatus(500);
     }
@@ -54,7 +54,7 @@ const setRefreshedAuthAndRefreshToken = async (res, authToken, refreshToken) => 
         return false;
     }
     const newAuthToken = await generateAuthToken(authToken.username, authToken.firstName, authToken.lastName, authToken.isAdmin);
-    const newRefreshToken = await generateRefreshToken();
+    const newRefreshToken = await generateRefreshToken(authToken.username);
     if (newRefreshToken == null) {
         res.clearCookie(constants.AUTH_COOKIE_NAME);
         res.clearCookie(constants.REFRESH_COOKIE_NAME);
@@ -116,16 +116,17 @@ const generateAuthToken = async (username, firstName, lastName, isAdmin) => {
  * Generates a refresh token.
  * NOTE: Refresh tokens are whitelisted in the db and automatically expire
  * after REFRESH_TOKEN_EXPIRY_SECONDS.
+ * @param {string} username
  * @returns JWT (string) that acts as a refresh token. Returns null if writing
  * to the db failed.
  */
-const generateRefreshToken = async () => {
+const generateRefreshToken = async (username) => {
     // Generate & encrypt secret
     const secret = crypto.randomBytes(64).toString('hex');
     const encryptedSecret = await bcrypt.hash(secret, constants.PASSWORD_SALT_ROUNDS);
     // Store secret in db & get id
     try {
-        const id = await refreshSecretDao.storeRefreshSecret(encryptedSecret);
+        const id = await refreshSecretDao.storeRefreshSecret(username, encryptedSecret);
         // Return JWT
         return await jwt.sign({
             id: id,
