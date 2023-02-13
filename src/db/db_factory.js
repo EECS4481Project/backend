@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { isProd } = require('../utils');
+const { refreshSecretSchema } = require('./schema/refresh_secret');
 const agentSchema = require('./schema/agent').agentSchema;
 if (!isProd()) {
     require('dotenv').config();
@@ -24,10 +25,12 @@ if (isProd()) {
 
 // Add schemas to DB
 const agent = connection.model('Agent', agentSchema);
+const refreshSecret = connection.model('RefreshSecret', refreshSecretSchema);
 
 module.exports = {
     // Export dao's for use
     agent,
+    refreshSecret,
     // Export mongoose for graceful disconnect later
     mongoose
 };
