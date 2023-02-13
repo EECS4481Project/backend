@@ -2,16 +2,18 @@ const express = require('express');
 const helmet = require('helmet');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
+
 const auth = require('./auth/auth');
+const admin = require('./auth/admin');
+
 const { isProd } = require('./utils');
-const { registerAdminUser } = require('./auth/admin');
 const mongoose = require('./db/db_factory').mongoose
 // Only use dotenv (ie. .env) file in dev mode
 // In prod, it should consume the real environment
 if (!isProd()) {
     require('dotenv').config();
     // Create default admin user in dev env
-    registerAdminUser(process.env.ADMIN_USER_USERNAME,
+    admin.registerAdminUser(process.env.ADMIN_USER_USERNAME,
         process.env.ADMIN_USER_FIRST_NAME, process.env.ADMIN_USER_LAST_NAME,
         process.env.ADMIN_USER_PASSWORD).then(res => {
             if (res.success && res.failure_reason != "username already exists") {
@@ -31,6 +33,7 @@ app.use(bodyParser.json());
 // Use auth module (ie. exposes all endpoints from the imported router to
 // /auth endpoint)
 app.use('/auth', auth.router);
+app.use('/admin', admin.router);
 
 // Health check to test that service is alive
 app.get('/health_check', (req, res) => {

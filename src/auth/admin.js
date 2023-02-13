@@ -2,6 +2,7 @@
  * Functions and endpoints for admin functionality.
  */
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const express = require('express');
 const { checkPasswordRequirements } = require('./utils');
 const agentDao = require('../db/dao/agent_dao');
@@ -14,6 +15,8 @@ if (!isProd()) {
     require('dotenv').config();
 }
 
+const router = express.Router();
+
 /**
  * When used as middleware, proceeds if request is from a signed in admin.
  * Returns 401 status code otherwise.
@@ -24,12 +27,13 @@ if (!isProd()) {
  * @param {Next} next Next request
 */
 const isAdmin = async (req, res, next) => {
-    await auth.isAgent(req, res, next);
-    if (req.auth_info.isAdmin) {
+    auth.isAgent(req, res, () => {
+        if (req.auth_info.isAdmin === true) {
         next();
     } else {
         return res.sendStatus(401);
     }
+    })
 }
 
 /**
@@ -64,6 +68,38 @@ const registerAdminUser = async (username, firstName, lastName, password) => {
     }
 };
 
+/**
+ * Registers a temporary user with a random password
+ * given {username: string, firstName: string, lastName: string}.
+ * - Upon success, returns the random password.
+ * - If input is invalid, returns 400
+ * - If the username already exists, returns 409
+ * - If anything else goes wrong, returns 500.
+ */
+router.post("/register_temp_user", isAdmin, async (req, res) => {
+    const username = req.body.username;
+    const firstName = req.body.firstName;
+    const lastName = req.body.lastName;
+    if (typeof username != "string" || typeof firstName != "string" || typeof lastName != "string") {
+        return res.sendStatus(400);
+    }
+    // Generate random password
+    const password = crypto.randomBytes(32).toString('hex');
+    // Encrypt password
+    const passwordHash = await bcrypt.hash(password, constants.PASSWORD_SALT_ROUNDS);
+    try {
+        // Store user in db
+        await agentDao.registerAgent(username, firstName, lastName, passwordHash);
+        return res.send({ password: password });
+    } catch(err) {
+        console.log(err)
+        if (isMongoDuplicateKeyError(err)) {
+            return res.sendStatus(409);
+        }
+        return res.sendStatus(500);
+    }
+});
 module.exports = {
-    registerAdminUser
+    registerAdminUser,
+    router
 }
