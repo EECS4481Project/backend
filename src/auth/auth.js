@@ -5,6 +5,8 @@ const bcrypt = require('bcrypt');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const agentDao = require('../db/dao/agent_dao');
+const refreshSecretDao = require('../db/dao/refresh_secret_dao');
+const constants = require('../constants');
 const { setNewAuthAndRefreshToken, getJsonAuthTokenIfValid, getJsonRefreshTokenIfValid, setRefreshedAuthAndRefreshToken } = require('./token_utils');
 const { getCurrentTimestamp } = require('../utils');
 
@@ -26,11 +28,12 @@ const rateLimiter = rateLimit({
  * @param {*} next Callback to next request
  */
 const isAgent = async (req, res, next) => {
-    if (!req.cookies || !req.cookies.hasOwnProperty("auth") || !req.cookies.hasOwnProperty("refresh")) {
+    if (!req.cookies || !req.cookies.hasOwnProperty(constants.AUTH_COOKIE_NAME) ||
+            !req.cookies.hasOwnProperty(constants.REFRESH_COOKIE_NAME)) {
         return res.sendStatus(401);
     }
-    const auth = await getJsonAuthTokenIfValid(req.cookies["auth"]);
-    const refresh = await getJsonRefreshTokenIfValid(req.cookies["refresh"]);
+    const auth = await getJsonAuthTokenIfValid(req.cookies[constants.AUTH_COOKIE_NAME]);
+    const refresh = await getJsonRefreshTokenIfValid(req.cookies[constants.REFRESH_COOKIE_NAME]);
     if (auth == null || refresh == null) {
         return res.sendStatus(401);
     }
@@ -50,12 +53,15 @@ const isAgent = async (req, res, next) => {
 /**
  * When used as middleware, populates req.agent_name and proceeds.
  * If no agent_name is found, req.agent_name will be null.
+ * NOTE: isAgent middleware must be called first.
  * @param {Request} req 
  * @param {Response} res 
  * @param {NextFunction} next 
  */
 const getName = async (req, res, next) => {
-    // TODO: Parse JWT
+    if (req.auth_info) {
+        req.agent_name = req.auth_info.firstName + " " + req.auth_info.lastName;
+    }
     next();
 }
 
@@ -63,7 +69,7 @@ const getName = async (req, res, next) => {
  * Returns a 200 status code if the user is signed in. Returns a 401 status code
  * otherwise.
  */
-router.get('/is_logged_in', isAgent, (req, res) => {
+router.get('/is_logged_in', isAgent, getName, (req, res) => {
     res.sendStatus(200);
 });
 
@@ -101,8 +107,14 @@ router.post('/login', rateLimiter, async (req, res) => {
         // Error case
         return res.sendStatus(500);
     }
-
 });
+
+router.post('/logout', isAgent, async (req, res) => {
+    refreshSecretDao.getAndDeleteRefreshSecret(req.refresh_info.id);
+    res.clearCookie(constants.AUTH_COOKIE_NAME);
+    res.clearCookie(constants.REFRESH_COOKIE_NAME);
+    res.sendStatus(200);
+})
 
 router.post('/register', rateLimiter, async (req, res) => {
     // TODO: Register temp user

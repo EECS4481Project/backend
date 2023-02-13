@@ -49,15 +49,15 @@ const setRefreshedAuthAndRefreshToken = async (res, authToken, refreshToken) => 
     // Check if secret is valid
     const isValidSecret = await bcrypt.compare(refreshToken.secret, encryptedSecret);
     if (!isValidSecret) {
-        res.clearCookie("auth");
-        res.clearCookie("refresh");
+        res.clearCookie(constants.AUTH_COOKIE_NAME);
+        res.clearCookie(constants.REFRESH_COOKIE_NAME);
         return false;
     }
     const newAuthToken = await generateAuthToken(authToken.username, authToken.firstName, authToken.lastName, authToken.isAdmin);
     const newRefreshToken = await generateRefreshToken();
     if (newRefreshToken == null) {
-        res.clearCookie("auth");
-        res.clearCookie("refresh");
+        res.clearCookie(constants.AUTH_COOKIE_NAME);
+        res.clearCookie(constants.REFRESH_COOKIE_NAME);
         return res.sendStatus(500);
     }
     setCookies(res, newAuthToken, newRefreshToken);
@@ -160,8 +160,8 @@ const setCookies = (res, authToken, refreshToken) => {
         authTokenOptions["secure"] = true;
         refreshTokenOptions["secure"] = true;
     }
-    res.cookie("refresh", refreshToken, refreshTokenOptions);
-    res.cookie("auth", authToken, authTokenOptions);
+    res.cookie(constants.REFRESH_COOKIE_NAME, refreshToken, refreshTokenOptions);
+    res.cookie(constants.AUTH_COOKIE_NAME, authToken, authTokenOptions);
 }
 
 module.exports = {
