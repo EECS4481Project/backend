@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { isProd } = require('../utils');
+const agentSchema = require('./schema/agent').agentSchema;
 if (!isProd()) {
     require('dotenv').config();
 }
@@ -9,6 +10,7 @@ let connection = mongoose;
 if (isProd()) {
     // TODO: Connect to prod db
 } else {
+    // Connect to dev db
     mongoose.connect(process.env.MONGO_DB_URL, {
         useNewUrlParser: true,
         useUnifiedTopology: true
@@ -21,9 +23,11 @@ if (isProd()) {
 }
 
 // Add schemas to DB
-const user = connection.model('User', userSchema);
+const agent = connection.model('Agent', agentSchema);
 
-// Export dao's for use
-exports.user = user;
-// Export mongoose for graceful disconnect later
-exports.mongoose = mongoose;
+module.exports = {
+    // Export dao's for use
+    agent,
+    // Export mongoose for graceful disconnect later
+    mongoose
+};
