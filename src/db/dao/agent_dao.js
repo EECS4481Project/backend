@@ -9,8 +9,12 @@ const { getCurrentTimestamp } = require('../../utils');
  * @throws {Error} if there is a database error.
  */
 const getAgentByUsername = async (username) => {
-    const user = await agent.findOne({ username: username }).lean();
-    return user ? user : null;
+    try {
+        const user = await agent.findOne({ username: username }).lean();
+        return user ? user : null;
+    } catch(err) {
+        throw err;
+    }
 }
 
 /**
