@@ -20,12 +20,15 @@ const storeRefreshSecret = async (encryptedSecret) => {
 /**
  * Deletes a refresh token secret of the given id, and returns its encrypted secret.
  * @param {string} id of the secret to find & delete.
- * @returns encrypted secret for the given id
+ * @returns encrypted secret for the given id, null if not found.
  * @throws if something goes wrong while accessing the db.
  */
 const getAndDeleteRefreshSecret = async (id) => {
     try {
         const deleted = await refreshSecret.findOneAndDelete({ _id: id }).lean(true);
+        if (deleted == null) {
+            return null;
+        }
         return deleted.secret;
     } catch(err) {
         throw err;

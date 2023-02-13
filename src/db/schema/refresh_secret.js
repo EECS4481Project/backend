@@ -1,9 +1,12 @@
 const mongoose = require('mongoose');
 const constants = require('../../constants');
+const { getCurrentTimestamp } = require('../../utils');
 
 const refreshSecretSchema = new mongoose.Schema({
     secret: { type: String, required: true, unique: true },
-    createdAt: { type: Date, expires: constants.REFRESH_TOKEN_EXPIRY_SECONDS, default: Date.now }
+    createdAt: { type: Date, required: true, default: Date.now }
 });
+
+refreshSecretSchema.index({ createdAt: 1 }, { expireAfterSeconds: constants.REFRESH_TOKEN_EXPIRY_SECONDS });
 
 exports.refreshSecretSchema = refreshSecretSchema;

@@ -5,7 +5,8 @@ const bcrypt = require('bcrypt');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const agentDao = require('../db/dao/agent_dao');
-const { setNewAuthAndRefreshToken } = require('./token_utils');
+const { setNewAuthAndRefreshToken, getJsonAuthTokenIfValid, getJsonRefreshTokenIfValid, setRefreshedAuthAndRefreshToken } = require('./token_utils');
+const { getCurrentTimestamp } = require('../utils');
 
 const rateLimiter = rateLimit({
 	windowMs: 10 * 60 * 1000, // 10 minutes
@@ -16,6 +17,7 @@ const rateLimiter = rateLimit({
 
 /**
  * When used as middleware, proceeds if request is from a signed in agent.
+ * Also sets req.auth_token & req.refresh_token
  * Returns 401 status code otherwise.
  * Will also handle refreshing the users credentials.
  * Usage: router.get('/some_endpoint', isAgent, (req, res) => {...})
@@ -24,7 +26,24 @@ const rateLimiter = rateLimit({
  * @param {*} next Callback to next request
  */
 const isAgent = async (req, res, next) => {
-    // TODO: Return 401 if not signed in
+    if (!req.cookies || !req.cookies.hasOwnProperty("auth") || !req.cookies.hasOwnProperty("refresh")) {
+        return res.sendStatus(401);
+    }
+    const auth = await getJsonAuthTokenIfValid(req.cookies["auth"]);
+    const refresh = await getJsonRefreshTokenIfValid(req.cookies["refresh"]);
+    if (auth == null || refresh == null) {
+        return res.sendStatus(401);
+    }
+    // Renew auth token if needed
+    if (auth.exp <= getCurrentTimestamp()) {
+        const refreshed = await setRefreshedAuthAndRefreshToken(res, auth, refresh);
+        if (!refreshed) {
+            return res.sendStatus(401);
+        }
+    }
+    // proceed
+    req.auth_info = auth;
+    req.refresh_info = refresh;
     next();
 }
 
