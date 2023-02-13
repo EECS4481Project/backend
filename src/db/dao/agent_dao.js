@@ -50,6 +50,27 @@ const registerAgent = async (username, firstName, lastName, encryptedPassword) =
 }
 
 /**
+ * Updates the agent of username with the given dataToUpdate
+ * NOTE: Username cannot be updated
+ * @param {string} username 
+ * @param {agent} dataToUpdate 
+ * @returns true upon success, false otherwise
+ * @throws error if an error occurred while writing to db.
+ */
+const updateAgent = async (username, dataToUpdate) => {
+    // NOTE: Username cannot be updated
+    if (dataToUpdate.hasOwnProperty("username")) {
+        return false;
+    }
+    try {
+        const res = await agent.findOneAndUpdate({ username: username }, dataToUpdate).lean(true);
+        return res ? true : false
+    } catch(err) {
+        throw err;
+    }
+}
+
+/**
  * Registers a user with the given params.
  * Throws an error if the username already exists.
  * @param {string} username 
@@ -79,5 +100,6 @@ const registerUser = async (username, firstName, lastName, encryptedPassword, is
 module.exports = {
     getAgentByUsername,
     registerAdmin,
-    registerAgent
+    registerAgent,
+    updateAgent
 };

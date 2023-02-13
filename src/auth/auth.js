@@ -8,7 +8,8 @@ const agentDao = require('../db/dao/agent_dao');
 const refreshSecretDao = require('../db/dao/refresh_secret_dao');
 const constants = require('../constants');
 const { setNewAuthAndRefreshToken, getJsonAuthTokenIfValid, getJsonRefreshTokenIfValid, setRefreshedAuthAndRefreshToken } = require('./token_utils');
-const { getCurrentTimestamp } = require('../utils');
+const { getCurrentTimestamp, isProd } = require('../utils');
+const { checkPasswordRequirements } = require('./utils');
 
 const rateLimiter = rateLimit({
 	windowMs: 10 * 60 * 1000, // 10 minutes
@@ -75,13 +76,7 @@ router.get('/is_logged_in', isAgent, getName, (req, res) => {
 
 /**
  * Given a json of { username: string, password: string } attempts to log in.
- * If successful, returns the following cookies:
- *   - HttpOnly REFRESH -- long lived cookie for obtaining a new AUTH token
- *   - AUTH -- short lived authentication cookie
- * If given invalid credentials, or invalid input returns 400.
- * If too many calls were made by the given IP, it will rate limit them
- * returning 429.
- * Returns 500 if there's an internal error.
+ * @see{updatePassword} for response codes.
  */
 router.post('/login', rateLimiter, async (req, res) => {
     const username = req.body.username;
@@ -89,16 +84,86 @@ router.post('/login', rateLimiter, async (req, res) => {
     if (typeof username != 'string' || typeof password != 'string') {
         return res.sendStatus(400);
     }
+    await login(username, password, res);
+});
+
+/**
+ * Deletes the users refresh token from the db, and wipes their auth & refresh
+ * cookies.
+ */
+router.post('/logout', isAgent, async (req, res) => {
+    refreshSecretDao.getAndDeleteRefreshSecret(req.refresh_info.id);
+    res.clearCookie(constants.AUTH_COOKIE_NAME);
+    res.clearCookie(constants.REFRESH_COOKIE_NAME);
+    res.sendStatus(200);
+})
+
+/**
+ * Given a json {username: string, password: string, newPassword: string}:
+ * validates the given password, updates the users password,
+ * and sets them to isRegistered.
+ * @see{updatePassword} for response codes.
+ */
+router.post('/register', rateLimiter, async (req, res) => {
+    const username = req.body.username;
+    const password = req.body.password;
+    const newPassword = req.body.newPassword;
+    if (typeof password != "string" || typeof username != "string"
+            || typeof newPassword != "string") {
+        return res.sendStatus(400);
+    }
+    // Validate that the given password is valid
     try {
-        const agent = await agentDao.getAgentByUsername(username);
-        // User not found case
+        const agent = await getAgentIfPasswordMatches(username, password);
         if (agent == null) {
             return res.sendStatus(400);
         }
-        // Compare password
-        const isPasswordEqual = await bcrypt.compare(password, agent.password);
-        if (!isPasswordEqual) {
+    } catch(err) {
+        return res.sendStatus(500);
+    }
+    // Update the password & set them to registered
+    updatePassword(username, newPassword, true, res);
+    // Log user in
+    await login(username, newPassword, res);
+});
+
+/**
+ * Given a json {password: string}: validates the given password,
+ * and updates the users password.
+ * @see{updatePassword} for response codes.
+ */
+router.post('/change_password', isAgent, async (req, res) => {
+    const password = req.body.password;
+    if (typeof password != "string") {
+        return res.sendStatus(400);
+    }
+    updatePassword(req.auth_info.username, password, true, res);
+    // TODO: Consider deleting all other refresh tokens as a security measure
+})
+
+
+/**
+ * Given a username & password, attempts to log in.
+ * If successful, returns the following cookies:
+ *   - HttpOnly REFRESH -- long lived cookie for obtaining a new AUTH token
+ *   - AUTH -- short lived authentication cookie
+ * - Returns 409 if the user isn't registered but the credentials are correct.
+ * - If given invalid credentials, or invalid input returns 400.
+ * - If too many calls were made by the given IP, it will rate limit them
+ *   returning 429.
+ * - Returns 500 if there's an internal error.
+ * @param {string} username
+ * @param {string} password
+ * @param {Response} res
+ */
+const login = async (username, password, res) => {
+    try {
+        const agent = await getAgentIfPasswordMatches(username, password);
+        if (agent == null) {
             return res.sendStatus(400);
+        }
+        if (!agent.isRegistered) {
+            return res.sendStatus(409);
         }
         // Username & password are valid, return auth info
         await setNewAuthAndRefreshToken(agent, res);
@@ -107,31 +172,64 @@ router.post('/login', rateLimiter, async (req, res) => {
         // Error case
         return res.sendStatus(500);
     }
-});
+}
 
-router.post('/logout', isAgent, async (req, res) => {
-    refreshSecretDao.getAndDeleteRefreshSecret(req.refresh_info.id);
-    res.clearCookie(constants.AUTH_COOKIE_NAME);
-    res.clearCookie(constants.REFRESH_COOKIE_NAME);
-    res.sendStatus(200);
-})
+/**
+ * Returns an agent if one is found with the given username & password.
+ * @param {string} username 
+ * @param {string} password 
+ * @returns an agent if one is found with the given username & password. Null
+ * otherwise.
+ * @throws error if something goes wrong while fetching the user.
+ */
+const getAgentIfPasswordMatches = async (username, password) => {
+    try {
+        const agent = await agentDao.getAgentByUsername(username);
+        // User not found case
+        if (agent == null) {
+            return null;
+        }
+        // Compare password
+        const isPasswordEqual = await bcrypt.compare(password, agent.password);
+        if (!isPasswordEqual) {
+            return null;
+        }
+        return agent;
+    } catch(err) {
+        throw err;
+    }
+}
 
-router.post('/register', rateLimiter, async (req, res) => {
-    // TODO: Register temp user
-});
-
-router.post('/change_password', async (req, res) => {
-    // NOTE: Must take current password as param
-})
-
-
-
-// Login:
-// Returns Access Token in body
-// Returns Refresh Token as HTTPOnly
-
-// isAgent() will handle refreshing
-
+/**
+ * Validates the given password, and sets it for the agents username if valid.
+ * Also sets isRegistered while updating the agent.
+ * - Returns 200 upon success
+ * - Returns 400 upon invalid data
+ * - Returns 500 upon internal error
+ * @param {string} username 
+ * @param {string} password 
+ * @param {boolean} isRegistered 
+ * @param {Response} res 
+ */
+const updatePassword = async (username, password, isRegistered, res) => {
+    // Validate password
+    if (isProd() && !checkPasswordRequirements(password)) {
+        return res.sendStatus(400);
+    }
+    // Encrypt password
+    const encryptedPassword = await bcrypt.hash(password, constants.PASSWORD_SALT_ROUNDS);
+    try {
+        // Store password
+        const updated = await agentDao.updateAgent(username, {
+            password: encryptedPassword,
+            isRegistered: isRegistered
+        });
+        if (updated) {
+            return res.sendStatus(200);
+        }
+    } catch(err) {}
+    return res.sendStatus(500);
+}
 
 exports.router = router;
 exports.isAgent = isAgent;
