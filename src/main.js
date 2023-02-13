@@ -1,6 +1,7 @@
 const express = require('express');
 const helmet = require('helmet');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 const auth = require('./auth/auth');
 const { isProd } = require('./utils');
 const { registerAdminUser } = require('./auth/admin');
@@ -23,6 +24,8 @@ const app = express();
 
 // Set default security headers: https://www.npmjs.com/package/helmet
 app.use(helmet());
+// Required to parse cookies
+app.use(cookieParser());
 // Required to parse JSON requests
 app.use(bodyParser.json());
 // Use auth module (ie. exposes all endpoints from the imported router to
