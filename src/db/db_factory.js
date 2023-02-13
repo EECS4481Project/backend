@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
-const userSchema = require('./schema/user').userSchema;
-if (process.env.NODE_ENV !== 'production') {
+const { isProd } = require('../utils');
+if (!isProd()) {
     require('dotenv').config();
 }
 
 let connection = mongoose;
 
-if (process.env.NODE_ENV === 'production') {
+if (isProd()) {
     // TODO: Connect to prod db
 } else {
     mongoose.connect(process.env.MONGO_DB_URL, {

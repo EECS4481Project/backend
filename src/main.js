@@ -2,10 +2,11 @@ const express = require('express');
 const helmet = require('helmet');
 const bodyParser = require('body-parser');
 const auth = require('./auth/auth');
+const { isProd } = require('./utils');
 const mongoose = require('./db/db_factory').mongoose
 // Only use dotenv (ie. .env) file in dev mode
 // In prod, it should consume the real environment
-if (process.env.NODE_ENV !== 'production') {
+if (!isProd()) {
     require('dotenv').config();
 }
 
