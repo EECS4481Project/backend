@@ -5,12 +5,31 @@ const bcrypt = require('bcrypt');
 const express = require('express');
 const { checkPasswordRequirements } = require('./utils');
 const agentDao = require('../db/dao/agent_dao');
+const auth = require('./auth');
 const { isMongoDuplicateKeyError, isProd } = require('../utils');
 const constants = require('../constants');
 // Only use dotenv (ie. .env) file in dev mode
 // In prod, it should consume the real environment
 if (!isProd()) {
     require('dotenv').config();
+}
+
+/**
+ * When used as middleware, proceeds if request is from a signed in admin.
+ * Returns 401 status code otherwise.
+ * Will also handle refreshing the users credentials.
+ * Usage: router.get('/some_endpoint', isAgent, (req, res) => {...})
+ * @param {Request} req Request
+ * @param {Response} res Resolve
+ * @param {Next} next Next request
+*/
+const isAdmin = async (req, res, next) => {
+    await auth.isAgent(req, res, next);
+    if (req.auth_info.isAdmin) {
+        next();
+    } else {
+        return res.sendStatus(401);
+    }
 }
 
 /**
