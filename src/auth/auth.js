@@ -122,9 +122,10 @@ router.post('/register', rateLimiter, async (req, res) => {
         return res.sendStatus(500);
     }
     // Update the password & set them to registered
-    updatePassword(username, newPassword, true, res);
-    // Log user in
-    await login(username, newPassword, res);
+    if (await updatePassword(username, newPassword, true, res)) {
+        // Log user in
+        await login(username, newPassword, res);   
+    }
 });
 
 /**
@@ -137,7 +138,7 @@ router.post('/change_password', isAgent, async (req, res) => {
     if (typeof password != "string") {
         return res.sendStatus(400);
     }
-    updatePassword(req.auth_info.username, password, true, res);
+    await updatePassword(req.auth_info.username, password, true, res);
     // TODO: Consider deleting all other refresh tokens as a security measure
 })
 
@@ -210,11 +211,13 @@ const getAgentIfPasswordMatches = async (username, password) => {
  * @param {string} password 
  * @param {boolean} isRegistered 
  * @param {Response} res 
+ * @returns false upon failure, true upon success.
  */
 const updatePassword = async (username, password, isRegistered, res) => {
     // Validate password
     if (isProd() && !checkPasswordRequirements(password)) {
-        return res.sendStatus(400);
+        res.sendStatus(400);
+        return false;
     }
     // Encrypt password
     const encryptedPassword = await bcrypt.hash(password, constants.PASSWORD_SALT_ROUNDS);
@@ -225,10 +228,11 @@ const updatePassword = async (username, password, isRegistered, res) => {
             isRegistered: isRegistered
         });
         if (updated) {
-            return res.sendStatus(200);
+            return true;
         }
     } catch(err) {}
-    return res.sendStatus(500);
+    res.sendStatus(500);
+    return false;
 }
 
 exports.router = router;
