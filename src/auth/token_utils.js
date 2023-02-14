@@ -148,7 +148,7 @@ const generateRefreshToken = async (username) => {
 const setCookies = (res, authToken, refreshToken) => {
     // Set cookie options
     const authTokenOptions = {
-        maxAge: constants.AUTH_TOKEN_EXPIRY_SECONDS * 1000,
+        maxAge: constants.REFRESH_TOKEN_EXPIRY_SECONDS * 1000,
         sameSite: 'strict'
     };
     const refreshTokenOptions = {

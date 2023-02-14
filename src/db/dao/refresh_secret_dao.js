@@ -37,7 +37,22 @@ const getAndDeleteRefreshSecret = async (id) => {
     }
 }
 
+/**
+ * Deletes all of the refresh tokens for the given username.
+ * @param {string} username 
+ * @returns true upon success, false otherwise.
+ * @throws if there is a database error.
+ */
+const deleteRefreshSecretsForUsername = async (username) => {
+    try {
+        return (await refreshSecret.deleteMany({ username: username }).lean(true)).acknowledged;
+    } catch(err) {
+        throw err;
+    }
+}
+
 module.exports = {
     storeRefreshSecret,
-    getAndDeleteRefreshSecret
+    getAndDeleteRefreshSecret,
+    deleteRefreshSecretsForUsername
 }

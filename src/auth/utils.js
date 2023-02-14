@@ -28,7 +28,7 @@ const checkPasswordRequirements = (password) => {
         }
     }
     return lowercaseCount >= 1 && uppercaseCount >= 1 && numberCount >= 1
-        && symbolCount >= 1;
+        && symbolCount >= 1 && password.length >= 8;
 }
 
 module.exports = {

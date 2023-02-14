@@ -71,6 +71,50 @@ const updateAgent = async (username, dataToUpdate) => {
 }
 
 /**
+ * Gets all registered users
+ * @returns All registered users
+ * @throws if there is a database error.
+ */
+const getAllRegisteredUsers = async () => {
+    try {
+        return await agent.find({ isRegistered: true }, {
+            'username': 1, 'firstName': 1, 'lastName': 1, '_id': 0
+        }).lean(true);
+    } catch(err) {
+        throw err;
+    }
+}
+
+/**
+ * Gets all non-registered users
+ * @returns All non-registered users
+ * @throws if there is a database error.
+ */
+const getAllNonRegisteredUsers = async () => {
+    try {
+        return await agent.find({ isRegistered: false }, {
+            'username': 1, 'firstName': 1, 'lastName': 1, '_id': 0
+        }).lean(true);
+    } catch(err) {
+        throw err;
+    }
+}
+
+/**
+ * Deletes the user of the given username.
+ * @param {string} username 
+ * @returns true upon successful deletion, false otherwise.
+ * @throws if there is a database error.
+ */
+const deleteUser = async (username) => {
+    try {
+        return (await agent.deleteOne({ username: username }).lean(true)).deletedCount == 1;
+    } catch(err) {
+        throw err;
+    }
+}
+
+/**
  * Registers a user with the given params.
  * Throws an error if the username already exists.
  * @param {string} username 
@@ -101,5 +145,8 @@ module.exports = {
     getAgentByUsername,
     registerAdmin,
     registerAgent,
-    updateAgent
+    updateAgent,
+    getAllRegisteredUsers,
+    getAllNonRegisteredUsers,
+    deleteUser
 };
