@@ -103,6 +103,7 @@ router.post('/logout', isAgent, async (req, res) => {
  * validates the given password, updates the users password,
  * and sets them to isRegistered.
  * @see{updatePassword} for response codes.
+ * - 400 error code on invalid input (ie. password is the same as newPassword)
  */
 router.post('/register', rateLimiter, async (req, res) => {
     const username = req.body.username;
@@ -110,6 +111,10 @@ router.post('/register', rateLimiter, async (req, res) => {
     const newPassword = req.body.newPassword;
     if (typeof password != "string" || typeof username != "string"
             || typeof newPassword != "string") {
+        return res.sendStatus(400);
+    }
+    // Don't allow password reuse
+    if (password === newPassword) {
         return res.sendStatus(400);
     }
     // Validate that the given password is valid
