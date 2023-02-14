@@ -126,6 +126,33 @@ router.get("/all_nonregistered_users", isAdmin, async (req, res) => {
     }
 })
 
+/**
+ * Sets the user back to a temp user, and resets their password to a random
+ * string.
+ * @return {password: string} upon success.
+ * - 400 error code if input is invalid
+ * - 500 error code if something went wrong
+ */
+router.post("/unregister_user", isAdmin, async (req, res) => {
+    const username = req.body.username;
+    if (typeof username != 'string') {
+        return res.sendStatus(400);
+    }
+    // Generate random password
+    const password = crypto.randomBytes(32).toString('hex');
+    // Encrypt password
+    const passwordHash = await bcrypt.hash(password, constants.PASSWORD_SALT_ROUNDS);
+    try {
+        await agentDao.updateAgent(username, {
+            password: passwordHash,
+            isRegistered: false
+        });
+        res.send({ password: password });
+    } catch(err) {
+        return res.sendStatus(500);
+    }
+})
+
 module.exports = {
     registerAdminUser,
     router
