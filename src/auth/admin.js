@@ -99,6 +99,33 @@ router.post("/register_temp_user", isAdmin, async (req, res) => {
         return res.sendStatus(500);
     }
 });
+
+/**
+ * Returns json list of all registered usernames. Returns 500 if something
+ * goes wrong. Format [{username: str, firstName: str, lastName: str}, ...]
+ */
+router.get("/all_registered_users", isAdmin, async (req, res) => {
+    try {
+        res.send(await agentDao.getAllRegisteredUsers());
+    } catch(err) {
+        console.log(err);
+        return res.sendStatus(500);
+    }
+})
+
+/**
+ * Returns json list of all registered usernames. Returns 500 if something
+ * goes wrong. Format [{username: str, firstName: str, lastName: str}, ...]
+ */
+router.get("/all_nonregistered_users", isAdmin, async (req, res) => {
+    try {
+        res.send(await agentDao.getAllNonRegisteredUsers());
+    } catch(err) {
+        console.log(err);
+        return res.sendStatus(500);
+    }
+})
+
 module.exports = {
     registerAdminUser,
     router

@@ -71,6 +71,36 @@ const updateAgent = async (username, dataToUpdate) => {
 }
 
 /**
+ * Gets all registered users
+ * @returns All registered users
+ * @throws if there is a database error.
+ */
+const getAllRegisteredUsers = async () => {
+    try {
+        return await agent.find({ isRegistered: true }, {
+            'username': 1, 'firstName': 1, 'lastName': 1, '_id': 0
+        }).lean(true);
+    } catch(err) {
+        throw err;
+    }
+}
+
+/**
+ * Gets all non-registered users
+ * @returns All non-registered users
+ * @throws if there is a database error.
+ */
+const getAllNonRegisteredUsers = async () => {
+    try {
+        return await agent.find({ isRegistered: false }, {
+            'username': 1, 'firstName': 1, 'lastName': 1, '_id': 0
+        }).lean(true);
+    } catch(err) {
+        throw err;
+    }
+}
+
+/**
  * Registers a user with the given params.
  * Throws an error if the username already exists.
  * @param {string} username 
@@ -101,5 +131,7 @@ module.exports = {
     getAgentByUsername,
     registerAdmin,
     registerAgent,
-    updateAgent
+    updateAgent,
+    getAllRegisteredUsers,
+    getAllNonRegisteredUsers,
 };
