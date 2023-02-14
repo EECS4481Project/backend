@@ -138,7 +138,9 @@ router.post('/change_password', isAgent, async (req, res) => {
     if (typeof password != "string") {
         return res.sendStatus(400);
     }
-    await updatePassword(req.auth_info.username, password, true, res);
+    if (await updatePassword(req.auth_info.username, password, true, res)) {
+        res.sendStatus(200)
+    }
     // TODO: Consider deleting all other refresh tokens as a security measure
 })
 
