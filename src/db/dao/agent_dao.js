@@ -101,6 +101,20 @@ const getAllNonRegisteredUsers = async () => {
 }
 
 /**
+ * Deletes the user of the given username.
+ * @param {string} username 
+ * @returns true upon successful deletion, false otherwise.
+ * @throws if there is a database error.
+ */
+const deleteUser = async (username) => {
+    try {
+        return (await agent.deleteOne({ username: username }).lean(true)).deletedCount == 1;
+    } catch(err) {
+        return false;
+    }
+}
+
+/**
  * Registers a user with the given params.
  * Throws an error if the username already exists.
  * @param {string} username 
@@ -134,4 +148,5 @@ module.exports = {
     updateAgent,
     getAllRegisteredUsers,
     getAllNonRegisteredUsers,
+    deleteUser
 };

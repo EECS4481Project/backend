@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const express = require('express');
 const { checkPasswordRequirements } = require('./utils');
 const agentDao = require('../db/dao/agent_dao');
+const refreshSecretDao = require('../db/dao/refresh_secret_dao');
 const auth = require('./auth');
 const { isMongoDuplicateKeyError, isProd } = require('../utils');
 const constants = require('../constants');
@@ -29,10 +30,10 @@ const router = express.Router();
 const isAdmin = async (req, res, next) => {
     auth.isAgent(req, res, () => {
         if (req.auth_info.isAdmin === true) {
-        next();
-    } else {
-        return res.sendStatus(401);
-    }
+            next();
+        } else {
+            return res.sendStatus(401);
+        }
     })
 }
 
@@ -92,7 +93,6 @@ router.post("/register_temp_user", isAdmin, async (req, res) => {
         await agentDao.registerAgent(username, firstName, lastName, passwordHash);
         return res.send({ password: password });
     } catch(err) {
-        console.log(err)
         if (isMongoDuplicateKeyError(err)) {
             return res.sendStatus(409);
         }
@@ -108,7 +108,6 @@ router.get("/all_registered_users", isAdmin, async (req, res) => {
     try {
         res.send(await agentDao.getAllRegisteredUsers());
     } catch(err) {
-        console.log(err);
         return res.sendStatus(500);
     }
 })
@@ -121,9 +120,26 @@ router.get("/all_nonregistered_users", isAdmin, async (req, res) => {
     try {
         res.send(await agentDao.getAllNonRegisteredUsers());
     } catch(err) {
-        console.log(err);
         return res.sendStatus(500);
     }
+})
+
+/**
+ * Deletes the agent, along with their refresh tokens.
+ * Returns 200 upon success, 500 otherwise.
+ */
+router.post("/delete_user", isAdmin, async (req, res) => {
+    const username = req.body.username;
+    if (typeof username != 'string') {
+        return res.sendStatus(400);
+    }
+    // Delete user
+    const deletedAgent = await agentDao.deleteUser(username);
+    const deletedTokens = await refreshSecretDao.deleteRefreshSecretsForUsername(username);
+    if (deletedAgent && deletedTokens) {
+        return res.sendStatus(200);
+    }
+    res.sendStatus(500);
 })
 
 /**
