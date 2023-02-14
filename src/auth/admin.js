@@ -153,6 +153,7 @@ router.post("/delete_user", isAdmin, async (req, res) => {
  * string.
  * @return {password: string} upon success.
  * - 400 error code if input is invalid
+ * - 404 error code if user not found
  * - 500 error code if something went wrong
  */
 router.post("/unregister_user", isAdmin, async (req, res) => {
@@ -165,11 +166,15 @@ router.post("/unregister_user", isAdmin, async (req, res) => {
     // Encrypt password
     const passwordHash = await bcrypt.hash(password, constants.PASSWORD_SALT_ROUNDS);
     try {
-        await agentDao.updateAgent(username, {
+        const updateSuccess = await agentDao.updateAgent(username, {
             password: passwordHash,
             isRegistered: false
         });
-        res.send({ password: password });
+        if (updateSuccess) {
+            res.send({ password: password });
+        } else {
+            res.sendStatus(404);
+        }
     } catch(err) {
         return res.sendStatus(500);
     }
