@@ -110,7 +110,7 @@ const deleteUser = async (username) => {
     try {
         return (await agent.deleteOne({ username: username }).lean(true)).deletedCount == 1;
     } catch(err) {
-        return false;
+        throw err;
     }
 }
 

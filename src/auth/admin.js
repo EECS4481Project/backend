@@ -126,7 +126,8 @@ router.get("/all_nonregistered_users", isAdmin, async (req, res) => {
 
 /**
  * Deletes the agent, along with their refresh tokens.
- * Returns 200 upon success, 500 otherwise.
+ * Returns 200 upon success, 400 on bad input, 404 if the user wasn't found,
+ * and 500 if there's a database error.
  */
 router.post("/delete_user", isAdmin, async (req, res) => {
     const username = req.body.username;
@@ -134,12 +135,17 @@ router.post("/delete_user", isAdmin, async (req, res) => {
         return res.sendStatus(400);
     }
     // Delete user
-    const deletedAgent = await agentDao.deleteUser(username);
-    const deletedTokens = await refreshSecretDao.deleteRefreshSecretsForUsername(username);
-    if (deletedAgent && deletedTokens) {
-        return res.sendStatus(200);
+    try {
+        const deletedAgent = await agentDao.deleteUser(username);
+        const deletedTokens = await refreshSecretDao.deleteRefreshSecretsForUsername(username);
+        if (deletedAgent && deletedTokens) {
+            return res.sendStatus(200);
+        } else {
+            return res.sendStatus(404);
+        }
+    } catch(err) {
+        res.sendStatus(200);
     }
-    res.sendStatus(500);
 })
 
 /**
