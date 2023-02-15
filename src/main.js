@@ -7,6 +7,7 @@ const auth = require('./auth/auth');
 const admin = require('./auth/admin');
 
 const { isProd } = require('./utils');
+const { Router } = require('express');
 const mongoose = require('./db/db_factory').mongoose
 // Only use dotenv (ie. .env) file in dev mode
 // In prod, it should consume the real environment
@@ -23,22 +24,26 @@ if (!isProd()) {
 }
 
 const app = express();
+const router = Router();
 
 // Set default security headers: https://www.npmjs.com/package/helmet
 app.use(helmet());
 // Required to parse cookies
-app.use(cookieParser());
+router.use(cookieParser());
 // Required to parse JSON requests
-app.use(bodyParser.json());
+router.use(bodyParser.json());
 // Use auth module (ie. exposes all endpoints from the imported router to
 // /auth endpoint)
-app.use('/auth', auth.router);
-app.use('/admin', admin.router);
+router.use('/auth', auth.router);
+router.use('/admin', admin.router);
 
 // Health check to test that service is alive
-app.get('/health_check', (req, res) => {
+router.get('/health_check', (req, res) => {
     res.sendStatus(200);
 })
+
+// Put all endpoints behind /api
+app.use('/api', router);
 
 // Listen on port from environment variable
 app.listen(process.env.PORT, () => {
