@@ -1,7 +1,7 @@
 ## Getting Started
 1. Install [NodeJS](https://nodejs.org/en/download/)
-2. Install [MongoDB](https://www.mongodb.com/docs/manual/installation/)
-   - You should make sure MongoDB is successfully running before proceeding.
+2. Install [MongoDB Community Edition](https://www.mongodb.com/docs/manual/administration/install-community/)
+   - You should make sure MongoDB is successfully running before proceeding (ie. [guide for mac here](https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-os-x/#run-mongodb-community-edition))
 3. In main directory:
      - Run `$ npm install` to download all dependencies (you'll likely want to do this every time you pull changes).
 
@@ -25,9 +25,13 @@ to the `prod` branch once your feature is done.
 
 ## File Structure
 - `/src/main.js` is our main entry point.
-- `/src/.env` is our dev env file. Variables here can be accessed in JS via `process.env.VAR_NAME`.
+- Database:
+  - `/src/db/schema/` are schemas for our db objects.
+  - `/src/db/dao/` are db access objects -- ie. helper functions for making db calls. Ik these seem silly as we could make db calls directly from our code, but they're helpful for mocking db calls in our tests.
+  - `/src/db/db_factory.js` returns db objects for our `/src/db/dao/` files to use.
+- `/src/.env` is our dev env file. Variables here can be accessed in JS via `process.env.VAR_NAME` upon importing `dotenv`.
 - `/tst/*.test.js` are test files that correspond with a given src file.
-- The subdirectories with `/src` are specific features.
+- The subdirectories within `/src` are specific features.
 
 
 ### Node Specific files:
@@ -35,6 +39,25 @@ to the `prod` branch once your feature is done.
   - You should use [`npm` commands](https://devhints.io/npm) to add/remove
   dependencies rather than manually modifying it. 
 - `/src/node_modules` is where our dependencies are stored. You shouldn't commit this folder
+
+
+### Examples for getting started:
+- Simple POST request that takes a JSON with a `username` field and returns it [here](https://github.com/EECS4481Project/backend/blob/f27928c990a76cb7a410429ee874d5c6ab765c32/src/auth/auth.js). Note that to expose the routes, we have to add the files router to our `app` in `main.js` via:
+```javascript
+const auth = require('./auth/auth');
+app.use('/auth', auth.router);
+```
+- Simple test case to ensure `GET /health_check` returns a 200 code. [Link](https://github.com/EECS4481Project/backend/blob/f27928c990a76cb7a410429ee874d5c6ab765c32/tests/main.test.js)
+- Creating a DAO:
+  - Defining schema [here](https://github.com/EECS4481Project/backend/blob/09fc7bfa98e727033bd6af9a9ce7f93a82da7a78/src/db/schema/user.js)
+  - Adding the schema to our db connection [here](https://github.com/EECS4481Project/backend/blob/09fc7bfa98e727033bd6af9a9ce7f93a82da7a78/src/db/db_factory.js) via:
+  ```javascript
+  const user = connection.model('User', userSchema);
+  exports.user = user;
+  ```
+  - A simple DAO for getting a user by username [here](https://github.com/EECS4481Project/backend/blob/09fc7bfa98e727033bd6af9a9ce7f93a82da7a78/src/db/dao/user_dao.js). As the function is async, we'll
+  have to use callbacks or `await` to call this function.
+
 
 
 ## Git cheat sheet incase you're new to git:
