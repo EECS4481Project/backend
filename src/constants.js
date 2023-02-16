@@ -4,4 +4,5 @@ module.exports = {
     AUTH_TOKEN_EXPIRY_SECONDS: (60 * 15), // 15 mins
     REFRESH_COOKIE_NAME: "refresh",
     AUTH_COOKIE_NAME: "auth",
+    MAX_USERS_PER_AGENT: 10
 }

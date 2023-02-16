@@ -1,6 +1,18 @@
-// database access object for users
+// dao for agent related queries
 const agent = require('../db_factory').agent;
 const { getCurrentTimestamp } = require('../../utils');
+
+const authFields = {
+    _id: 1,
+    username: 1,
+    firstName: 1,
+    lastName: 1,
+    password: 1,
+    isDeleted: 1,
+    isAdmin: 1,
+    isRegistered: 1,
+    createdAt: 1
+}
 
 const getEndpointFields = {
     username: 1,
@@ -19,7 +31,7 @@ const getEndpointFields = {
  */
 const getAgentByUsername = async (username) => {
     try {
-        const user = await agent.findOne({ username: username, isDeleted: false }).lean();
+        const user = await agent.findOne({ username: username, isDeleted: false }, authFields).lean();
         return user ? user : null;
     } catch(err) {
         throw err;
@@ -72,7 +84,7 @@ const updateAgent = async (username, dataToUpdate) => {
         return false;
     }
     try {
-        const res = await agent.findOneAndUpdate({ username: username, isDeleted: false }, dataToUpdate).lean(true);
+        const res = await agent.findOneAndUpdate({ username: username, isDeleted: false }, dataToUpdate, {fields: authFields}).lean(true);
         return res ? true : false
     } catch(err) {
         throw err;
@@ -126,7 +138,7 @@ const getAllDeletedUsers = async () => {
  */
 const deleteUser = async (username) => {
     try {
-        return (await agent.findOneAndUpdate({ username: username, isDeleted: false }, { isDeleted: true }).lean(true)) != null;
+        return (await agent.findOneAndUpdate({ username: username, isDeleted: false }, { isDeleted: true }, {fields: authFields}).lean(true)) != null;
     } catch(err) {
         throw err;
     }
