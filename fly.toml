@@ -8,7 +8,7 @@ processes = []
 
 [[services]]
   http_checks = []
-  internal_port = 3000
+  internal_port = 80
   processes = ["app"]
   protocol = "tcp"
   script_checks = []
@@ -18,9 +18,9 @@ processes = []
     type = "connections"
 
   [[services.ports]]
-    force_https = true
+    force_https = false
     handlers = ["http"]
-    port = 3000
+    port = 80
 
   [[services.tcp_checks]]
     grace_period = "1s"
