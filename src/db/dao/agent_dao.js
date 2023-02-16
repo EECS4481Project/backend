@@ -2,6 +2,15 @@
 const agent = require('../db_factory').agent;
 const { getCurrentTimestamp } = require('../../utils');
 
+const getEndpointFields = {
+    username: 1,
+    firstName: 1,
+    lastName: 1,
+    isDeleted: 1,
+    isAdmin: 1,
+    _id: 0
+};
+
 /**
  * Returns an agent for the given username.
  * @param {string} username username
@@ -10,7 +19,7 @@ const { getCurrentTimestamp } = require('../../utils');
  */
 const getAgentByUsername = async (username) => {
     try {
-        const user = await agent.findOne({ username: username }).lean();
+        const user = await agent.findOne({ username: username, isDeleted: false }).lean();
         return user ? user : null;
     } catch(err) {
         throw err;
@@ -63,7 +72,7 @@ const updateAgent = async (username, dataToUpdate) => {
         return false;
     }
     try {
-        const res = await agent.findOneAndUpdate({ username: username }, dataToUpdate).lean(true);
+        const res = await agent.findOneAndUpdate({ username: username, isDeleted: false }, dataToUpdate).lean(true);
         return res ? true : false
     } catch(err) {
         throw err;
@@ -77,9 +86,7 @@ const updateAgent = async (username, dataToUpdate) => {
  */
 const getAllRegisteredUsers = async () => {
     try {
-        return await agent.find({ isRegistered: true }, {
-            'username': 1, 'firstName': 1, 'lastName': 1, '_id': 0
-        }).lean(true);
+        return await agent.find({ isRegistered: true, isDeleted: false }, getEndpointFields).lean(true);
     } catch(err) {
         throw err;
     }
@@ -92,9 +99,20 @@ const getAllRegisteredUsers = async () => {
  */
 const getAllNonRegisteredUsers = async () => {
     try {
-        return await agent.find({ isRegistered: false }, {
-            'username': 1, 'firstName': 1, 'lastName': 1, '_id': 0
-        }).lean(true);
+        return await agent.find({ isRegistered: false, isDeleted: false }, getEndpointFields).lean(true);
+    } catch(err) {
+        throw err;
+    }
+}
+
+/**
+ * Gets all deleted users
+ * @returns All deleted users
+ * @throws if there is a database error.
+ */
+const getAllDeletedUsers = async () => {
+    try {
+        return await agent.find({ isDeleted: true }, getEndpointFields).lean(true);
     } catch(err) {
         throw err;
     }
@@ -108,7 +126,7 @@ const getAllNonRegisteredUsers = async () => {
  */
 const deleteUser = async (username) => {
     try {
-        return (await agent.deleteOne({ username: username }).lean(true)).deletedCount == 1;
+        return (await agent.findOneAndUpdate({ username: username, isDeleted: false }, { isDeleted: true }).lean(true)) != null;
     } catch(err) {
         throw err;
     }
@@ -148,5 +166,6 @@ module.exports = {
     updateAgent,
     getAllRegisteredUsers,
     getAllNonRegisteredUsers,
+    getAllDeletedUsers,
     deleteUser
 };
