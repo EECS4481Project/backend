@@ -8,14 +8,14 @@ WORKDIR /usr/src/backend
 COPY . .
 
 # install dependencies
-RUN npm install
+RUN npm install --production
 
 # set env vars
-ENV PORT=3000
+ENV PORT=80
 ENV NODE_ENV=production
 
 # expose port
-EXPOSE 3000
+EXPOSE 80
 
 # start app
 CMD ["npm", "run", "start"]
