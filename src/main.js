@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const { router, server } = require('./server');
 const auth = require('./auth/auth');
 const admin = require('./auth/admin');
+const queue = require('./queue/help_desk_queue');
 
 const { isProd } = require('./utils');
 const mongoose = require('./db/db_factory').mongoose
