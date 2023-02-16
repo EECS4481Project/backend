@@ -101,8 +101,8 @@ router.post("/register_temp_user", isAdmin, async (req, res) => {
 });
 
 /**
- * Returns json list of all registered usernames. Returns 500 if something
- * goes wrong. Format [{username: str, firstName: str, lastName: str}, ...]
+ * Returns json list of all registered users. Returns 500 if something
+ * goes wrong. Format [{username: str, firstName: str, lastName: str, isDeleted: bool, isAdmin: bool}, ...]
  */
 router.get("/all_registered_users", isAdmin, async (req, res) => {
     try {
@@ -113,12 +113,24 @@ router.get("/all_registered_users", isAdmin, async (req, res) => {
 })
 
 /**
- * Returns json list of all registered usernames. Returns 500 if something
- * goes wrong. Format [{username: str, firstName: str, lastName: str}, ...]
+ * Returns json list of all registered users. Returns 500 if something
+ * goes wrong. Format [{username: str, firstName: str, lastName: str, isAdmin: bool}, ...]
  */
 router.get("/all_nonregistered_users", isAdmin, async (req, res) => {
     try {
         res.send(await agentDao.getAllNonRegisteredUsers());
+    } catch(err) {
+        return res.sendStatus(500);
+    }
+})
+
+/**
+ * Returns json list of all deleted users. Returns 500 if something
+ * goes wrong. Format [{username: str, firstName: str, lastName: str, isAdmin: bool}, ...]
+ */
+router.get("/all_deleted_users", isAdmin, async (req, res) => {
+    try {
+        res.send(await agentDao.getAllDeletedUsers());
     } catch(err) {
         return res.sendStatus(500);
     }
@@ -172,6 +184,9 @@ router.post("/unregister_user", isAdmin, async (req, res) => {
         });
         if (updateSuccess) {
             res.send({ password: password });
+            // Delete all refresh tokens for the user (async)
+            refreshSecretDao.deleteRefreshSecretsForUsername(username);
+            return;
         } else {
             res.sendStatus(404);
         }
