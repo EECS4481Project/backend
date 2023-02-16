@@ -5,6 +5,8 @@ const { router, server } = require('./server');
 const auth = require('./auth/auth');
 const admin = require('./auth/admin');
 const queue = require('./queue/help_desk_queue');
+const liveChat = require('./chat/live_chat');
+const agentMessaging = require('./help_desk/help_desk_messaging');
 
 const { isProd } = require('./utils');
 const mongoose = require('./db/db_factory').mongoose
