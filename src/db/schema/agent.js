@@ -7,6 +7,7 @@ const agentSchema = new mongoose.Schema({
     password: { type: String, required: true},
     isAdmin: { type: Boolean, required: true, default: false },
     isRegistered: { type: Boolean, required: true, default: false }, // Flag for newly registered user who hasn't yet set their password
+    isDeleted: { type: Boolean, required: true, default: false }, // Flag for deleting users.
     createdAt: { type: Number, required: true },
 });
 
