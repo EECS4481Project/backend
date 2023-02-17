@@ -1,3 +1,4 @@
+// Agent schema -- users who sign in/register.
 const mongoose = require('mongoose');
 
 const agentSchema = new mongoose.Schema({

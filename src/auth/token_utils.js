@@ -40,6 +40,7 @@ const setRefreshedAuthAndRefreshToken = async (res, authToken, refreshToken) => 
     try {
         encryptedSecret = await refreshSecretDao.getAndDeleteRefreshSecret(refreshToken.id);
     } catch(err) {
+        console.error(err);
         return res.sendStatus(500);
     }
     // Case where refresh token wasn't found (possibly expired)
@@ -134,6 +135,7 @@ const generateRefreshToken = async (username) => {
             exp: getCurrentTimestamp() + constants.REFRESH_TOKEN_EXPIRY_SECONDS
         }, process.env.REFRESH_TOKEN_PRIVATE_KEY);
     } catch(err) {
+        console.error(err);
         return null;
     }
     

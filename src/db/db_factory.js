@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const { isProd } = require('../utils');
+const { anonymousUserSchema } = require('./schema/anonymous_user');
+const { queueTokenSchema } = require('./schema/queue_token');
 const { refreshSecretSchema } = require('./schema/refresh_secret');
 const agentSchema = require('./schema/agent').agentSchema;
 if (!isProd()) {
@@ -36,11 +38,15 @@ db.once('open', function () {
 // Add schemas to DB
 const agent = connection.model('Agent', agentSchema);
 const refreshSecret = connection.model('RefreshSecret', refreshSecretSchema);
+const queueToken = connection.model('QueueToken', queueTokenSchema);
+const anonymousUser = connection.model('AnonymousUser', anonymousUserSchema);
 
 module.exports = {
     // Export dao's for use
     agent,
     refreshSecret,
+    queueToken,
+    anonymousUser,
     // Export mongoose for graceful disconnect later
     mongoose
 };
