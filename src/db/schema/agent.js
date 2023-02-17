@@ -1,3 +1,4 @@
+// Agent schema -- users who sign in/register.
 const mongoose = require('mongoose');
 
 const agentSchema = new mongoose.Schema({
@@ -9,9 +10,6 @@ const agentSchema = new mongoose.Schema({
     isRegistered: { type: Boolean, required: true, default: false }, // Flag for newly registered user who hasn't yet set their password
     isDeleted: { type: Boolean, required: true, default: false }, // Flag for deleting users.
     createdAt: { type: Number, required: true },
-    // User chat info
-    isOnlineForUserChat: { type: Boolean, required: true, default: false},
-    chattingWithUsers: [{ type: String, required: true, default: [] }],
 });
 
 exports.agentSchema = agentSchema;
