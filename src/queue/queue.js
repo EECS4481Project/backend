@@ -11,6 +11,8 @@ const overUtilizedAgents = {}; // username: overage -- for case where users are 
 const agentToUserMapping = {}; // Used for handling the case where an agent signs off & we need to notify users -- stores user ids rather than socket ids
 let availableAgentsIndex = 0;
 
+let onlineAgentsCount = 0;
+
 /**
  * Sets the agent as available in the queue & process the queue.
  * @param {string} username agent username
@@ -23,7 +25,10 @@ const setAgentOnline = (username) => {
     // Set agent as available w/ MAX_USERS_PER_AGENT slots
     availableAgents[username] = constants.MAX_USERS_PER_AGENT;
     agentToUserMapping[username] = new Set();
+    onlineAgentsCount += 1;
     processQueue();
+    // Notify clients of agent count
+    io.emit('agents_online', onlineAgentsCount);
 }
 
 /**
@@ -60,6 +65,9 @@ const setAgentOffline = (username, socketIo) => {
             console.error(err);
         }
     });
+    // Notify clients of agent count
+    onlineAgentsCount -= 1;
+    io.emit('agents_online', onlineAgentsCount);
 }
 
 /**
@@ -257,6 +265,14 @@ const isAgentOnline = (username) => {
     return availableAgents.hasOwnProperty(username) || unavailableAgents.has(username)
 }
 
+/**
+ * Get the number of agents online
+ * @returns number of agents online
+ */
+const getOnlineAgentCount = () => {
+    return onlineAgentsCount;
+}
+
 module.exports = {
     setAgentOnline,
     setAgentOffline,
@@ -265,5 +281,6 @@ module.exports = {
     userDisconnectedFromQueue,
     pushToFrontOfQueue,
     enqueue,
-    userJoinedChat
+    userJoinedChat,
+    getOnlineAgentCount
 }

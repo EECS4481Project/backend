@@ -1,5 +1,5 @@
 // Enqueues users & assigns them to an online help desk agent w/ availability
-const { enqueue, pushToFrontOfQueue, userDisconnectedFromQueue } = require('./queue');
+const { enqueue, pushToFrontOfQueue, userDisconnectedFromQueue, getOnlineAgentCount } = require('./queue');
 const { io } = require('./queue_socketio');
 const { verifyAndParseFrontOfQueueToken } = require('./queue_token_utils');
 
@@ -47,6 +47,9 @@ io.on('connection', async (socket) => {
         if (!socket.joinedQueue) {
             socket.emit('try_again', {});
             socket.disconnect();
+        } else {
+            // Notify user of # of online agents
+            socket.emit('agents_online', getOnlineAgentCount());
         }
     })
 
