@@ -1,6 +1,7 @@
 // Authentication functionality for help desk users
 const express = require('express');
 const bcrypt = require('bcrypt');
+const cookie = require('cookie');
 
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
@@ -19,6 +20,54 @@ const rateLimiter = rateLimit({
 });
 
 /**
+ * ONLY TO BE USED AS SOCKET IO MIDDLEWARE.
+ * ie. io.use(populateAgentInSocket);
+ * When used as middleware, proceeds if a handshake is from a signed in agent
+ * and sets socket.auth_token to the agents info.
+ * Disconnects otherwise.
+ * @param {socket} socket 
+ * @param {next} next
+ */
+const agentOnlySocket = async (socket, next) => {
+    // TODO: (security) We don't refresh the token during the socket
+    // So if an auth token was stolen, they could use it to permanently stay
+    // in the hcat
+    let cookies = {};
+    if (typeof socket.handshake.headers.cookie == 'string') {
+        cookies = cookie.parse(socket.handshake.headers.cookie);
+    }
+    const user = await getJsonAuthTokenIfValid(cookies[constants.AUTH_COOKIE_NAME]);
+    if (!user || user.exp < getCurrentTimestamp()) {
+        return next(Error("auth"));
+    }
+    socket.auth_token = user;
+    next();
+}
+
+/**
+ * ONLY TO BE USED AS SOCKET IO MIDDLEWARE.
+ * ie. io.use(populateAgentInSocket);
+ * When used as middleware, proceeds if a handshake is from a signed in agent
+ * and sets socket.auth_token to the agents info.
+ * socket.auth_token will be null if a non-agent.
+ * @param {socket} socket 
+ * @param {next} next
+ */
+const populateAgentInSocket = async (socket, next) => {
+    // TODO: (security) We don't refresh the token during the socket
+    // So if an auth token was stolen, they could use it to permanently stay
+    // in the hcat
+    let cookies = {};
+    if (typeof socket.handshake.headers.cookie == 'string') {
+        cookies = cookie.parse(socket.handshake.headers.cookie);
+    }
+    const user = await getJsonAuthTokenIfValid(cookies[constants.AUTH_COOKIE_NAME]);
+    socket.auth_token = user;
+    next();
+}
+
+/**
+ * ONLY TO BE USED AS HTTP REQUEST MIDDLEWARE.
  * When used as middleware, proceeds if request is from a signed in agent.
  * Also sets req.auth_token & req.refresh_token
  * Returns 401 status code otherwise.
@@ -29,8 +78,7 @@ const rateLimiter = rateLimit({
  * @param {*} next Callback to next request
  */
 const isAgent = async (req, res, next) => {
-    if (!req.cookies || !req.cookies.hasOwnProperty(constants.AUTH_COOKIE_NAME) ||
-            !req.cookies.hasOwnProperty(constants.REFRESH_COOKIE_NAME)) {
+    if (!req.cookies) {
         return res.sendStatus(401);
     }
     const auth = await getJsonAuthTokenIfValid(req.cookies[constants.AUTH_COOKIE_NAME]);
@@ -124,6 +172,7 @@ router.post('/register', rateLimiter, async (req, res) => {
             return res.sendStatus(400);
         }
     } catch(err) {
+        console.error(err);
         return res.sendStatus(500);
     }
     // Update the password & set them to registered
@@ -178,6 +227,7 @@ const login = async (username, password, res) => {
         return res.sendStatus(200);
     } catch(err) {
         // Error case
+        console.error(err);
         return res.sendStatus(500);
     }
 }
@@ -204,6 +254,7 @@ const getAgentIfPasswordMatches = async (username, password) => {
         }
         return agent;
     } catch(err) {
+        console.error(err);
         throw err;
     }
 }
@@ -237,11 +288,18 @@ const updatePassword = async (username, password, isRegistered, res) => {
         if (updated) {
             return true;
         }
-    } catch(err) {}
+    } catch(err) {
+        console.error(err);
+    }
     res.sendStatus(500);
     return false;
 }
 
-exports.router = router;
-exports.isAgent = isAgent;
-exports.getName = getName;
+module.exports = {
+    router,
+    isAgent,
+    getName,
+    agentOnlySocket,
+    populateAgentInSocket,
+    agentOnlySocket
+}

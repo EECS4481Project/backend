@@ -64,6 +64,7 @@ const registerAdminUser = async (username, firstName, lastName, password) => {
         if (isMongoDuplicateKeyError(err)) {
             return {success: false, failure_reason: "username already exists"};
         } else {
+            console.error(err);
             return {success: false, failure_reason: err.toString()};
         }
     }
@@ -96,6 +97,7 @@ router.post("/register_temp_user", isAdmin, async (req, res) => {
         if (isMongoDuplicateKeyError(err)) {
             return res.sendStatus(409);
         }
+        console.error(err);
         return res.sendStatus(500);
     }
 });
@@ -108,6 +110,7 @@ router.get("/all_registered_users", isAdmin, async (req, res) => {
     try {
         res.send(await agentDao.getAllRegisteredUsers());
     } catch(err) {
+        console.error(err);
         return res.sendStatus(500);
     }
 })
@@ -120,6 +123,7 @@ router.get("/all_nonregistered_users", isAdmin, async (req, res) => {
     try {
         res.send(await agentDao.getAllNonRegisteredUsers());
     } catch(err) {
+        console.error(err);
         return res.sendStatus(500);
     }
 })
@@ -132,6 +136,7 @@ router.get("/all_deleted_users", isAdmin, async (req, res) => {
     try {
         res.send(await agentDao.getAllDeletedUsers());
     } catch(err) {
+        console.error(err);
         return res.sendStatus(500);
     }
 })
@@ -156,6 +161,7 @@ router.post("/delete_user", isAdmin, async (req, res) => {
             return res.sendStatus(404);
         }
     } catch(err) {
+        console.error(err);
         res.sendStatus(200);
     }
 })
@@ -191,6 +197,7 @@ router.post("/unregister_user", isAdmin, async (req, res) => {
             res.sendStatus(404);
         }
     } catch(err) {
+        console.error(err);
         return res.sendStatus(500);
     }
 })
