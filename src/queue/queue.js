@@ -235,6 +235,10 @@ const assignUserToAgent = async (userId, agentUsername, socket) => {
     agentToUserMapping[agentUsername].add(userId);
     // Emit token to user
     try {
+        // TODO: User could go through queue, and then not join the chat.
+        // This would cause the chat to be full while the users have no agents.
+        // To fix this, we should run a method 20 seconds after they were granted permission
+        // & check if the anonymousUser.chatSocketId was set
         const jwt = await generateLiveChatToken(userId, socket.firstName, socket.lastName, agentUsername);
         socket.emit('done', { token: jwt })
         socket.disconnect();
