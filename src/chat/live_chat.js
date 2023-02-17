@@ -3,6 +3,7 @@
 const cookieParser = require('cookie-parser');
 const { default: helmet } = require('helmet');
 const { populateAgentInSocket } = require('../auth/auth');
+const { getSocketForAgent } = require('../queue/queue');
 const { server } = require('../server');
 const { handleAgentLogin, handleUserLogin, handleAgentDisconnect, handleUserDisconnect } = require('./queue_helper');
 const io = require("socket.io")(server, {
@@ -36,7 +37,7 @@ io.on('connection', async (socket) => {
     if (socket.auth_token) {
         socket.on('agent-login', async (msg) => {
             // Notify queue of agent signing in
-            handleAgentLogin(socket);
+            await handleAgentLogin(socket);
             socket.emit('started-agent-chat');
         })
     }
@@ -45,7 +46,12 @@ io.on('connection', async (socket) => {
     if (!socket.auth_token) {
         socket.on('user-login', async (msg) => {
             // Notify queue of user joining
-            handleUserLogin(socket, msg);
+            await handleUserLogin(socket, msg);
+            // Notify agent of user joining chat
+            const agentSocket = getSocketForAgent(socket.user_agent_info.username);
+            if (agentSocket != null) {
+                agentSocket.emit('user_joined_chat', socket.user_info.userId);
+            }
             // TODO: Set transcript if it exists -- We can use socket.user_info.userId to query data from anonymousUsers db
         })
     }
@@ -53,9 +59,15 @@ io.on('connection', async (socket) => {
     socket.on('disconnect', async () => {
         // Notify queue of disconnect
         if (socket.auth_token) {
-            handleAgentDisconnect(socket);
+            await handleAgentDisconnect(socket, io);
         } else {
-            handleUserDisconnect(socket);
+            // Notify agent of disconnect
+            const agentSocket = getSocketForAgent(socket.user_agent_info.username);
+            if (agentSocket != null) {
+                agentSocket.emit('user_disconnect', socket.user_info.userId);
+            }
+            // Handle queueing
+            await handleUserDisconnect(socket);
         }
     });
 
