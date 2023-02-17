@@ -10,7 +10,7 @@ const { verifyAndParseLiveChatToken } = require('../queue/queue_token_utils');
 const handleAgentLogin = async (socket) => {
     // Add agent to chat queue
     try {
-        setAgentOnline(socket.auth_token.username);
+        await setAgentOnline(socket.auth_token.username, socket);
     } catch (err) {
         socket.disconnect();
     }
@@ -27,7 +27,6 @@ const handleUserLogin = async (socket, msg) => {
     if (typeof msg.token == 'string') {
         const token = await verifyAndParseLiveChatToken(msg.token);
         if (token) {
-            userJoinedChat(token.userId, socket);
             // Populate socket with required data
             socket.user_info = {
                 userId: token.userId,
@@ -37,6 +36,7 @@ const handleUserLogin = async (socket, msg) => {
             socket.user_agent_info = {
                 username: token.agentUsername
             }
+            await userJoinedChat(token.userId, socket);
             return;
         }
     }
@@ -51,10 +51,11 @@ const handleUserLogin = async (socket, msg) => {
  * ('enqueue', {token: string}) -- this token can be passed
  * to join_queue to skip to the front of the queue.
  * @param {Socket} socket 
+ * @param {socketIO} socketIO IO obj for chat socket.
  */
-const handleAgentDisconnect = async (socket) => {
+const handleAgentDisconnect = async (socket, socketIO) => {
     try {
-        setAgentOffline(socket.auth_token.username, io);
+        setAgentOffline(socket.auth_token.username, socketIO);
     } catch (err) {}
 }
 
@@ -65,7 +66,7 @@ const handleAgentDisconnect = async (socket) => {
 const handleUserDisconnect = async (socket) => {
     // Free up spot in queue
     if (socket.user_info) {
-        userDisconnectedFromChat(socket.user_info.userId, socket.user_agent_info.username);
+        await userDisconnectedFromChat(socket.user_info.userId, socket.user_agent_info.username);
     }
 }
 

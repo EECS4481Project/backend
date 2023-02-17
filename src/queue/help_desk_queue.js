@@ -30,7 +30,7 @@ io.on('connection', async (socket) => {
                 socket.firstName = token.firstName;
                 socket.lastName = token.lastName;
                 socket.joinedQueue = true;
-                pushToFrontOfQueue(socket);
+                await pushToFrontOfQueue(socket);
             } else {
                 // Invalid auth token
                 socket.emit('bad_auth', {});
@@ -41,7 +41,7 @@ io.on('connection', async (socket) => {
             socket.firstName = msg.firstName;
             socket.lastName = msg.lastName;
             socket.joinedQueue = true;
-            enqueue(socket);
+            await enqueue(socket);
         }
         // If joining the queue failed, notify the user
         if (!socket.joinedQueue) {
