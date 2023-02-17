@@ -78,7 +78,6 @@ const verifyAndParseLiveChatToken = async (chatToken) => {
         }
         return null;
     } catch(err) {
-        console.error(err);
         return null;
     }
 }
@@ -104,7 +103,6 @@ const verifyAndParseFrontOfQueueToken = async (queueToken) => {
             }
             return null;
         } catch(err) {
-            console.error(err);
             return null;
         }
     }

@@ -76,7 +76,6 @@ const getJsonAuthTokenIfValid = async (authToken) => {
             ignoreExpiration: true
         });
     } catch(err) {
-        console.error(err);
         return null;
     }
 }
@@ -92,7 +91,6 @@ const getJsonRefreshTokenIfValid = async (refreshToken) => {
             ignoreExpiration: true
         });
     } catch(err) {
-        console.error(err);
         return null;
     }
 }
