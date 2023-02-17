@@ -172,6 +172,7 @@ router.post('/register', rateLimiter, async (req, res) => {
             return res.sendStatus(400);
         }
     } catch(err) {
+        console.error(err);
         return res.sendStatus(500);
     }
     // Update the password & set them to registered
@@ -226,6 +227,7 @@ const login = async (username, password, res) => {
         return res.sendStatus(200);
     } catch(err) {
         // Error case
+        console.error(err);
         return res.sendStatus(500);
     }
 }
@@ -252,6 +254,7 @@ const getAgentIfPasswordMatches = async (username, password) => {
         }
         return agent;
     } catch(err) {
+        console.error(err);
         throw err;
     }
 }
@@ -285,7 +288,9 @@ const updatePassword = async (username, password, isRegistered, res) => {
         if (updated) {
             return true;
         }
-    } catch(err) {}
+    } catch(err) {
+        console.error(err);
+    }
     res.sendStatus(500);
     return false;
 }
