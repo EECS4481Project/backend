@@ -1,15 +1,18 @@
 // helper class for live_chat functionality relating to queues
 const { Socket } = require('socket.io');
-const { setAgentOnline, setAgentOffline, userJoinedChat, userDisconnectedFromChat } = require('../queue/queue');
+const { setAgentOnline, setAgentOffline, userDisconnectedFromChat } = require('../queue/queue');
 const { verifyAndParseLiveChatToken } = require('../queue/queue_token_utils');
+const { setSocketForAgent, deleteSocketForAgent, setSocketForUser, deleteSocketForUser } = require('./socket_mapping');
 
 /**
  * Sets the agent as available to chat and alerts the queue.
+ * Also maps the agent to their socket -- can later be access via `getSocketForAgent()`
  * @param {Socket} socket 
  */
 const handleAgentLogin = async (socket) => {
     // Add agent to chat queue
     try {
+        setSocketForAgent(socket.auth_token.username, socket);
         await setAgentOnline(socket.auth_token.username, socket);
     } catch (err) {
         socket.disconnect();
@@ -20,6 +23,7 @@ const handleAgentLogin = async (socket) => {
  * Populates the user with their required info (user_info & user_agent_info)
  * and proceeds.
  * If their 1 time use token isn't valid, emit "auth_failed" and dc.
+ * Also maps the userId to their socket -- can later be access via `getSocketForUser()`
  * @param {Socket} socket 
  * @param {JSON} msg message containing token
  */
@@ -36,7 +40,7 @@ const handleUserLogin = async (socket, msg) => {
             socket.user_agent_info = {
                 username: token.agentUsername
             }
-            await userJoinedChat(token.userId, socket);
+            setSocketForUser(token.userId, socket);
             return;
         }
     }
@@ -50,23 +54,26 @@ const handleUserLogin = async (socket, msg) => {
  * reduced, and emits to all of the users they were chatting with:
  * ('enqueue', {token: string}) -- this token can be passed
  * to join_queue to skip to the front of the queue.
- * @param {Socket} socket 
- * @param {socketIO} socketIO IO obj for chat socket.
+ * Also removes the socket mapping for the sockets agent username
+ * @param {Socket} socket agents socket
  */
-const handleAgentDisconnect = async (socket, socketIO) => {
+const handleAgentDisconnect = async (socket) => {
     try {
-        setAgentOffline(socket.auth_token.username, socketIO);
+        setAgentOffline(socket.auth_token.username);
+        deleteSocketForAgent(socket.auth_token.username);
     } catch (err) {}
 }
 
 /**
  * Notifies the queue that a space has became available.
+ * Also removes the socket mapping for the sockets userId
  * @param {Socket} socket 
  */
 const handleUserDisconnect = async (socket) => {
     // Free up spot in queue
     if (socket.user_info) {
         await userDisconnectedFromChat(socket.user_info.userId, socket.user_agent_info.username);
+        deleteSocketForUser(socket.user_info.userId);
     }
 }
 

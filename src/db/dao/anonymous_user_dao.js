@@ -17,33 +17,15 @@ const getUserById = async (id) => {
 }
 
 /**
- * Updates the users chatSocketId to the given one
- * @param {string} id userId
- * @param {string} chatSocketId
- * @returns true upon success, false if user not found.
- * @throws if a db error occurs.
- */
-const updateUserChatSocketId = async (id, chatSocketId) => {
-    try {
-        const user = await anonymousUser.findOneAndUpdate({ _id: id }, { chatSocketId: chatSocketId }).lean(true);
-        return user != null;
-    } catch(err) {
-        return false;
-    }
-}
-
-/**
  * Creates a user for the given params.
- * @param {string} id userId
  * @param {string} firstName
  * @param {string} lastName
  * @returns the users id upon successful creation
  * @throws if a db error occurs.
  */
-const addUser = async (chatSocketId, firstName, lastName) => {
+const addUser = async (firstName, lastName) => {
     try {
         return (await anonymousUser.create({
-            chatSocketId: chatSocketId,
             firstName: firstName,
             lastName: lastName,
             createdAt: getCurrentTimestamp(),
@@ -55,6 +37,5 @@ const addUser = async (chatSocketId, firstName, lastName) => {
 
 module.exports = {
     getUserById,
-    updateUserChatSocketId,
     addUser
 }
