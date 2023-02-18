@@ -2,14 +2,14 @@
 const constants = require("../constants");
 const { generateLiveChatToken, generateFrontOfLineToken } = require('./queue_token_utils');
 const { io } = require('./queue_socketio');
-const { getUserById, addUser, updateUserChatSocketId } = require("../db/dao/anonymous_user_dao");
+const { addUser } = require("../db/dao/anonymous_user_dao");
+const { getSocketForAgent, getSocketForUser } = require("../chat/socket_mapping");
 
 const queue = []; // socket ids
 const availableAgents = {}; // username: available_spots
 const unavailableAgents = new Set(); // unavailable but online
 const overUtilizedAgents = {}; // username: overage -- for case where users are transferred to the agent
 const agentToUserMapping = {}; // Used for handling the case where an agent signs off & we need to notify users -- stores user ids rather than socket ids
-const agentToSocketMapping = {}; // For storing the agents socket (ie. to notify them when a user is assigned)
 let availableAgentsIndex = 0;
 
 let onlineAgentsCount = 0;
@@ -27,7 +27,6 @@ const setAgentOnline = async (username, socket) => {
     // Set agent as available w/ MAX_USERS_PER_AGENT slots
     availableAgents[username] = constants.MAX_USERS_PER_AGENT;
     agentToUserMapping[username] = new Set();
-    agentToSocketMapping[username] = socket;
     onlineAgentsCount += 1;
     await processQueue();
     // Notify clients of agent count
@@ -38,9 +37,8 @@ const setAgentOnline = async (username, socket) => {
  * Sets the agent as offline, and emits enqueue, along with a queue bypass
  * token to all of the agents current users.
  * @param {string} username agents username
- * @param {SocketIo} socketIo io object of chat
  */
-const setAgentOffline = (username, socketIo) => {
+const setAgentOffline = (username) => {
     // Agent can't be offline if already offline
     if (!isAgentOnline(username)) {
         return;
@@ -50,44 +48,26 @@ const setAgentOffline = (username, socketIo) => {
     // Remove agent everywhere
     delete availableAgents[username];
     delete agentToUserMapping[username];
-    delete agentToSocketMapping[username];
     unavailableAgents.delete(username);
     // Send users a queue skip token
     users.forEach(async (userId) => {
         try {
-            const user = await getUserById(userId);
-            const socket = socketIo.sockets.sockets.get(user.chatSocketId);
-            // Verify user id is correct -- in case socket io set a dupe id (should never happen)
+            const socket = getSocketForUser(userId)
+            // Verify user id is correct
             if (socket && socket.user_info && socket.user_info.userId == userId) {
-                socketIo.to(user.chatSocketId).emit('enqueue', {
-                    token: await generateFrontOfLineToken(userId, user.firstName, user.lastName)
+                socket.emit('enqueue', {
+                    token: await generateFrontOfLineToken(userId, socket.user_info.firstName, socket.user_info.lastName)
                 });
             } else {
                 socket.disconnect();
             }
-        } catch(err) {
+        } catch (err) {
             console.error(err);
         }
     });
     // Notify clients of agent count
     onlineAgentsCount -= 1;
     io.emit('agents_online', onlineAgentsCount);
-}
-
-/**
- * Updates the database with the users current socket.
- * @param {string} userId 
- * @param {Socket} socket users socket
- */
-const userJoinedChat = async (userId, socket) => {
-    try {
-        const updated = await updateUserChatSocketId(userId, socket.id);
-        if (!updated) {
-            socket.disconnect();
-        }
-    } catch (err) {
-        socket.disconnect();
-    }
 }
 
 /**
@@ -215,12 +195,12 @@ const processQueue = async () => {
             }
             if (socket.userId) {
                 // Assign user to agent
-               await assignUserToAgent(socket.userId, agentUsername, socket);
+                await assignUserToAgent(socket.userId, agentUsername, socket);
             } else {
                 try {
-                    const userId = await addUser("", socket.firstName, socket.lastName);
+                    const userId = await addUser(socket.firstName, socket.lastName);
                     await assignUserToAgent(userId, agentUsername, socket);
-                } catch(err) {
+                } catch (err) {
                     console.error(err);
                     // Failed to user -- revert changes (passing empty userId)
                     userDisconnectedFromChat("", agentUsername);
@@ -251,15 +231,18 @@ const assignUserToAgent = async (userId, agentUsername, socket) => {
         // To fix this, we should run a method 20 seconds after they were granted permission
         // & check if the anonymousUser.chatSocketId was set
         const jwt = await generateLiveChatToken(userId, socket.firstName, socket.lastName, agentUsername);
-        // Notify agent of assignment
-        agentToSocketMapping[agentUsername].emit('assigned_user', {
-            userId: userId,
-            firstName: socket.firstName,
-            lastName: socket.lastName
-        });
-        // Notify user of assignment
-        socket.emit('done', { token: jwt })
-        socket.disconnect();
+        const agentSocket = getSocketForAgent(agentUsername);
+        if (agentSocket) {
+            // Notify agent of assignment
+            agentSocket.emit('assigned_user', {
+                userId: userId,
+                firstName: socket.firstName,
+                lastName: socket.lastName
+            });
+            // Notify user of assignment
+            socket.emit('done', { token: jwt })
+            socket.disconnect();
+        }
     } catch (err) {
         console.log(err)
         // Failed to add user, revert the above
@@ -284,18 +267,6 @@ const getOnlineAgentCount = () => {
     return onlineAgentsCount;
 }
 
-/**
- * Gets the chat socket for the given agent username
- * @param {string} username agents username
- * @returns socket if found, null otherwise
- */
-const getSocketForAgent = (username) => {
-    if (isAgentOnline(username)) {
-        return agentToSocketMapping[username];
-    }
-    return null;
-}
-
 module.exports = {
     setAgentOnline,
     setAgentOffline,
@@ -304,7 +275,5 @@ module.exports = {
     userDisconnectedFromQueue,
     pushToFrontOfQueue,
     enqueue,
-    userJoinedChat,
     getOnlineAgentCount,
-    getSocketForAgent
 }
