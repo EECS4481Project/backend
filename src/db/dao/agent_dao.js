@@ -170,6 +170,65 @@ const registerUser = async (username, firstName, lastName, encryptedPassword, is
     }
 }
 
+/**
+ * Returns a list of agent usernames that the agent is currently chatting with.
+ * @param {string} username agent to query
+ * @returns list of agent usernames that the agent is currently chatting with.
+ * @throws {Error} if there is a db error.
+ */
+const getChattingWithAgentUsernames = async (username) => {
+    try {
+        return (await agent.findOne({ username: username, isAdmin: false, isDeleted: false, isRegistered: true },
+            { chattingWithAgentUsernames: 1, _id: 0 }).lean()).chattingWithAgentUsernames;
+    } catch (err) {
+        throw err;
+    }
+}
+
+/**
+ * Adds username2 to usernames chattingWithAgents list.
+ * @param {string} username 
+ * @param {string} username2 
+ * @throws {Error} if there is a db error.
+ */
+const addUsernameToChattingWithAgents = async (username, username2) => {
+    try {
+        await agent.findOneAndUpdate({ username: username, isAdmin: false, isDeleted: false, isRegistered: true },
+            { $addToSet: { chattingWithAgentUsernames: username2 } });
+    } catch (err) {
+        throw err;
+    }
+}
+
+/**
+ * Removes username2 to usernames chattingWithAgents list.
+ * @param {string} username 
+ * @param {string} username2 
+ * @throws {Error} if there is a db error.
+ */
+const removeUsernameFromChattingWithAgents = async (username, username2) => {
+    try {
+        await agent.findOneAndUpdate({ username: username, isAdmin: false, isDeleted: false, isRegistered: true },
+            { $pull : { chattingWithAgentUsernames: username2 } });
+    } catch (err) {
+        throw err;
+    }
+}
+
+/**
+ * Returns a list of all agent usernames
+ * @param {string} username 
+ * @returns list of all agent usernames
+ * @throws {Error} if there is a db error.
+ */
+const getAllAgentUsernames = async () => {
+    try {
+        return await agent.find({ isAdmin: false, isDeleted: false, isRegistered: true }, { username: 1, _id: 0 }).lean();
+    } catch (err) {
+        throw err;
+    }
+}
+
 
 module.exports = {
     getAgentByUsername,
@@ -179,5 +238,9 @@ module.exports = {
     getAllRegisteredUsers,
     getAllNonRegisteredUsers,
     getAllDeletedUsers,
-    deleteUser
+    deleteUser,
+    getChattingWithAgentUsernames,
+    addUsernameToChattingWithAgents,
+    removeUsernameFromChattingWithAgents,
+    getAllAgentUsernames
 };
