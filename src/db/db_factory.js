@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { isProd } = require('../utils');
+const { agentMessagesSchema } = require('./schema/agent_messages');
 const { anonymousUserSchema } = require('./schema/anonymous_user');
 const { queueTokenSchema } = require('./schema/queue_token');
 const { refreshSecretSchema } = require('./schema/refresh_secret');
@@ -40,6 +41,7 @@ const agent = connection.model('Agent', agentSchema);
 const refreshSecret = connection.model('RefreshSecret', refreshSecretSchema);
 const queueToken = connection.model('QueueToken', queueTokenSchema);
 const anonymousUser = connection.model('AnonymousUser', anonymousUserSchema);
+const agentMessages = connection.model('AgentMessages', agentMessagesSchema);
 
 module.exports = {
     // Export dao's for use
@@ -47,6 +49,7 @@ module.exports = {
     refreshSecret,
     queueToken,
     anonymousUser,
+    agentMessages,
     // Export mongoose for graceful disconnect later
     mongoose
 };

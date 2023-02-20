@@ -69,7 +69,7 @@ const populateAgentInSocket = async (socket, next) => {
 /**
  * ONLY TO BE USED AS HTTP REQUEST MIDDLEWARE.
  * When used as middleware, proceeds if request is from a signed in agent.
- * Also sets req.auth_token & req.refresh_token
+ * Also sets req.auth_info & req.refresh_info
  * Returns 401 status code otherwise.
  * Will also handle refreshing the users credentials.
  * Usage: router.get('/some_endpoint', isAgent, (req, res) => {...})
