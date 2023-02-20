@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const { router, server } = require('./server');
 const auth = require('./auth/auth');
 const admin = require('./auth/admin');
+const helpDeskMessagingHttp = require('./help_desk/help_desk_messaging_http');
 const queue = require('./queue/help_desk_queue');
 const liveChat = require('./chat/live_chat');
 const agentMessaging = require('./help_desk/help_desk_messaging');
@@ -32,6 +33,7 @@ router.use(bodyParser.json());
 // Add endpoints from other routers
 router.use('/auth', auth.router);
 router.use('/admin', admin.router);
+router.use('/help_desk_messaging', helpDeskMessagingHttp.router);
 
 // Health check to test that service is alive
 router.get('/health_check', (req, res) => {
