@@ -11,6 +11,7 @@ const anonymousUserSchema = new mongoose.Schema({
             correspondentUsername: { type: String, required: true},
             isFromUser: { type: Boolean, required: true },
             timestamp: { type: Number, required: true, index: true },
+            _id: false,
         }
     ]
 });
