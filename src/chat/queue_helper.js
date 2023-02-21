@@ -1,6 +1,6 @@
 // helper class for live_chat functionality relating to queues
 const { Socket } = require('socket.io');
-const { setAgentOnline, setAgentOffline, userDisconnectedFromChat } = require('../queue/queue');
+const { setAgentOnline, setAgentOffline, userDisconnectedFromChat, isUserAssignedToAgent, userTransferredToAgent } = require('../queue/queue');
 const { verifyAndParseLiveChatToken } = require('../queue/queue_token_utils');
 const { setSocketForAgent, deleteSocketForAgent, setSocketForUser, deleteSocketForUser } = require('./socket_mapping');
 
@@ -77,9 +77,43 @@ const handleUserDisconnect = async (socket) => {
     }
 }
 
+/**
+ * Checks if the given userId is assigned to the agent.
+ * @param {string} userId 
+ * @param {string} agentUsername 
+ * @returns true if the userId is assigned to the agent. False otherwise.
+ */
+const isUserIdAssignedToAgent = (userId, agentUsername) => {
+    return isUserAssignedToAgent(userId, agentUsername);
+}
+
+/**
+ * Removes the assigned user id -- when an agent ends a chat with a user
+ * @param {string} userId 
+ * @param {string} agentUsername 
+ */
+const removeAssignedUserId = async (userId, agentUsername) => {
+    await userDisconnectedFromChat(userId, agentUsername);
+    deleteSocketForUser(userId);
+}
+
+/**
+ * Assigns the user from originalAgentUsername to updatedAgentUsername.
+ * We allow agents to be over-capacity when users are transferred.
+ * @param {string} userId 
+ * @param {string} originalAgentUsername 
+ * @param {string} updatedAgentUsername 
+ */
+const transferUser = async (userId, originalAgentUsername, updatedAgentUsername) => {
+    await userTransferredToAgent(userId, originalAgentUsername, updatedAgentUsername);
+}
+
 module.exports = {
     handleAgentLogin,
     handleUserLogin,
     handleAgentDisconnect,
-    handleUserDisconnect
+    handleUserDisconnect,
+    isUserIdAssignedToAgent,
+    removeAssignedUserId,
+    transferUser
 }
