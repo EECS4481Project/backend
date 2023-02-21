@@ -1,6 +1,6 @@
 // helper class for live_chat functionality relating to queues
 const { Socket } = require('socket.io');
-const { setAgentOnline, setAgentOffline, userDisconnectedFromChat, isUserAssignedToAgent } = require('../queue/queue');
+const { setAgentOnline, setAgentOffline, userDisconnectedFromChat, isUserAssignedToAgent, userTransferredToAgent } = require('../queue/queue');
 const { verifyAndParseLiveChatToken } = require('../queue/queue_token_utils');
 const { setSocketForAgent, deleteSocketForAgent, setSocketForUser, deleteSocketForUser } = require('./socket_mapping');
 
@@ -97,11 +97,23 @@ const removeAssignedUserId = async (userId, agentUsername) => {
     deleteSocketForUser(userId);
 }
 
+/**
+ * Assigns the user from originalAgentUsername to updatedAgentUsername.
+ * We allow agents to be over-capacity when users are transferred.
+ * @param {string} userId 
+ * @param {string} originalAgentUsername 
+ * @param {string} updatedAgentUsername 
+ */
+const transferUser = async (userId, originalAgentUsername, updatedAgentUsername) => {
+    await userTransferredToAgent(userId, originalAgentUsername, updatedAgentUsername);
+}
+
 module.exports = {
     handleAgentLogin,
     handleUserLogin,
     handleAgentDisconnect,
     handleUserDisconnect,
     isUserIdAssignedToAgent,
-    removeAssignedUserId
+    removeAssignedUserId,
+    transferUser
 }

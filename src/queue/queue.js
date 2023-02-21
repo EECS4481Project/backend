@@ -96,7 +96,6 @@ const userDisconnectedFromChat = async (userId, agentUsername) => {
     await processQueue();
 }
 
-// TODO: Must be called upon transfer
 /**
  * Assigns the user from originalAgentUsername to updatedAgentUsername.
  * We allow agents to be over-capacity when users are transferred.

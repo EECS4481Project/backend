@@ -5,7 +5,7 @@ const { default: helmet } = require('helmet');
 const { populateAgentInSocket } = require('../auth/auth');
 const { getMessagesByUserId, addMessageToUser } = require('../db/dao/anonymous_user_dao');
 const { server } = require('../server');
-const { handleAgentLogin, handleUserLogin, handleAgentDisconnect, handleUserDisconnect, isUserIdAssignedToAgent, removeAssignedUserId } = require('./queue_helper');
+const { handleAgentLogin, handleUserLogin, handleAgentDisconnect, handleUserDisconnect, isUserIdAssignedToAgent, removeAssignedUserId, transferUser } = require('./queue_helper');
 const { getSocketForAgent, getSocketForUser } = require('./socket_mapping');
 const io = require("socket.io")(server, {
     path: "/api/start_chat"
@@ -17,6 +17,8 @@ io.engine.use(helmet());
 io.engine.use(cookieParser());
 // Ensure only agents can initialize the connection (not fully secure, but fine for v0)
 io.use(populateAgentInSocket);
+
+const onlineAgents = new Set();
 
 /*
 Queue related functionality:
@@ -48,7 +50,11 @@ io.on('connection', async (socket) => {
         socket.on('agent-login', async (msg) => {
             // Notify queue of agent signing in & set socket mapping
             await handleAgentLogin(socket);
+            onlineAgents.add(socket.auth_token.username);
+            socket.join('agents');
             socket.emit('started-agent-chat');
+            // Notify agents that agent is offline (for transferring)
+            io.to('agents').emit('available_agents', [...onlineAgents]);
         })
     }
 
@@ -82,10 +88,37 @@ io.on('connection', async (socket) => {
 
     if (socket.auth_token) {
         socket.on('transfer', async (data) => {
-            // TODO: Transfer to other agent
-            // Should modify socket.user_agent_info
-            // Notify agent that the user joined them
-            // Send transcript to agent
+            if (typeof data.userId !== 'string' || typeof data.toUsername !== 'string' || !onlineAgents.has(data.toUsername)) {
+                return;
+            }
+            // Only transfer user if both online
+            const userSocket = getSocketForUser(data.userId);
+            const newAgentSocket = getSocketForAgent(data.toUsername);
+            if (userSocket && newAgentSocket) {
+                // Notify agent of removal
+                socket.emit('user_disconnect', data.userId);
+                // Handle queue
+                await transferUser(data.userId, socket.auth_token.username, data.toUsername);
+                // Update users socket
+                userSocket.user_agent_info.username = data.toUsername;
+                // Alert user of change
+                userSocket.emit('agent-changed', data.toUsername);
+                // Notify new agent that user has been assigned
+                newAgentSocket.emit('assigned_user', {
+                    userId: data.userId,
+                    firstName: userSocket.user_info.firstName,
+                    lastName: userSocket.user_info.lastName
+                });
+                // Send transcript to new agent
+                const transcript = await getMessagesByUserId(data.userId);
+                newAgentSocket.emit('transcript', {
+                    userId: data.userId,
+                    transcript: transcript
+                });
+            } else if (userSocket) {
+                // Disconnect user as something went wrong
+                userSocket.disconnect();
+            }
         })
     }
 
@@ -151,6 +184,9 @@ io.on('connection', async (socket) => {
 
     socket.on('disconnect', async () => {
         if (socket.auth_token) {
+            // Notify agents that agent is offline (for transferring)
+            onlineAgents.delete(socket.auth_token.username);
+            io.to('agents').emit('available_agents', [...onlineAgents]);
             // Notify queue of agent disconnect & remove socket mapping
             await handleAgentDisconnect(socket);
         } else {
