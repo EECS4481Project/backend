@@ -3,8 +3,9 @@
 const cookieParser = require('cookie-parser');
 const { default: helmet } = require('helmet');
 const { populateAgentInSocket } = require('../auth/auth');
+const { getMessagesByUserId, addMessageToUser } = require('../db/dao/anonymous_user_dao');
 const { server } = require('../server');
-const { handleAgentLogin, handleUserLogin, handleAgentDisconnect, handleUserDisconnect } = require('./queue_helper');
+const { handleAgentLogin, handleUserLogin, handleAgentDisconnect, handleUserDisconnect, isUserIdAssignedToAgent, removeAssignedUserId } = require('./queue_helper');
 const { getSocketForAgent, getSocketForUser } = require('./socket_mapping');
 const io = require("socket.io")(server, {
     path: "/api/start_chat"
@@ -57,11 +58,94 @@ io.on('connection', async (socket) => {
             // Notify queue of user joining & set socket mapping
             await handleUserLogin(socket, msg);
             // Notify agent of user joining chat
-            const agentSocket = getSocketForAgent(socket.user_agent_info.username);
+            let agentSocket = getSocketForAgent(socket.user_agent_info.username);
             if (agentSocket != null) {
                 agentSocket.emit('user_joined_chat', socket.user_info.userId);
             }
-            // TODO: Set transcript if it exists -- We can use socket.user_info.userId to query data from anonymousUsers db
+            try {
+                // Send transcript to user & agent
+                const transcript = await getMessagesByUserId(socket.user_info.userId);
+                socket.emit('transcript', transcript);
+                agentSocket = getSocketForAgent(socket.user_agent_info.username);
+                if (agentSocket != null) {
+                    agentSocket.emit('transcript', {
+                        userId: socket.user_info.userId,
+                        transcript: transcript
+                    });
+                }
+            } catch (err) {
+                // Something went wrong
+                socket.disconnect();
+            }
+        })
+    }
+
+    if (socket.auth_token) {
+        socket.on('transfer', async (data) => {
+            // TODO: Transfer to other agent
+            // Should modify socket.user_agent_info
+            // Notify agent that the user joined them
+            // Send transcript to agent
+        })
+    }
+
+    socket.on('message', async (data) => {
+        if (typeof data.message !== 'string') {
+            return;
+        }
+        if (socket.auth_token) {
+            if (typeof data.userId !== 'string') {
+                return;
+            }
+            // Only allow agent to message assigned users
+            if (!isUserIdAssignedToAgent(data.userId, socket.auth_token.username)) {
+                return;
+            }
+            // Agent case
+            const userSocket = getSocketForUser(data.userId);
+            if (userSocket) {
+                // Notify user
+                userSocket.emit('message', {
+                    message: data.message,
+                    timestamp: Date.now(),
+                    correspondentUsername: socket.auth_token.username,
+                    isFromUser: false
+                })
+            }
+            // Write message to db for transcript
+            addMessageToUser(data.userId, data.message, socket.auth_token.username, false);
+        } else {
+            // User case
+            const agentSocket = getSocketForAgent(socket.user_agent_info.username);
+            if (agentSocket) {
+                // Notify agent
+                agentSocket.emit('message', {
+                    message: data.message,
+                    timestamp: Date.now(),
+                    correspondentUsername: socket.user_info.userId,
+                    isFromUser: true
+                })
+            }
+            // Write message to db for transcript
+            addMessageToUser(socket.user_info.userId, data.message, socket.user_agent_info.username, true);
+        }
+    });
+
+    if (socket.auth_token) {
+        socket.on('end-chat', (data) => {
+            // Validate data
+            if (typeof data.userId !== 'string' || !isUserIdAssignedToAgent(data.userId, socket.auth_token.username)) {
+                return;
+            }
+            // Data is valid, disconnect user
+            const userSocket = getSocketForUser(data.userId);
+            if (userSocket) {
+                userSocket.emit('chat-ended');
+                userSocket.disconnect();
+            } else {
+                // Notify queue of removal
+                removeAssignedUserId(data.userId, socket.auth_token.username);
+            }
         })
     }
 
@@ -79,8 +163,4 @@ io.on('connection', async (socket) => {
             await handleUserDisconnect(socket);
         }
     });
-
-    socket.on('ping', () => {
-        socket.emit('pong');
-    })
 });
