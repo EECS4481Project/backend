@@ -96,7 +96,6 @@ const userDisconnectedFromChat = async (userId, agentUsername) => {
     await processQueue();
 }
 
-// TODO: Must be called upon transfer
 /**
  * Assigns the user from originalAgentUsername to updatedAgentUsername.
  * We allow agents to be over-capacity when users are transferred.
@@ -267,6 +266,16 @@ const getOnlineAgentCount = () => {
     return onlineAgentsCount;
 }
 
+/**
+ * Checks if the given userId is assigned to the agent.
+ * @param {string} userId 
+ * @param {string} agentUsername 
+ * @returns true if the userId is assigned to the agent. False otherwise.
+ */
+const isUserAssignedToAgent = (userId, agentUsername) => {
+    return agentToUserMapping.hasOwnProperty(agentUsername) && agentToUserMapping[agentUsername].has(userId);
+}
+
 module.exports = {
     setAgentOnline,
     setAgentOffline,
@@ -276,4 +285,5 @@ module.exports = {
     pushToFrontOfQueue,
     enqueue,
     getOnlineAgentCount,
+    isUserAssignedToAgent
 }
