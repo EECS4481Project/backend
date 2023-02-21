@@ -267,6 +267,16 @@ const getOnlineAgentCount = () => {
     return onlineAgentsCount;
 }
 
+/**
+ * Checks if the given userId is assigned to the agent.
+ * @param {string} userId 
+ * @param {string} agentUsername 
+ * @returns true if the userId is assigned to the agent. False otherwise.
+ */
+const isUserAssignedToAgent = (userId, agentUsername) => {
+    return agentToUserMapping.hasOwnProperty(agentUsername) && agentToUserMapping[agentUsername].has(userId);
+}
+
 module.exports = {
     setAgentOnline,
     setAgentOffline,
@@ -276,4 +286,5 @@ module.exports = {
     pushToFrontOfQueue,
     enqueue,
     getOnlineAgentCount,
+    isUserAssignedToAgent
 }
