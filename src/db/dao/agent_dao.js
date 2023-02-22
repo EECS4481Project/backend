@@ -163,7 +163,8 @@ const registerUser = async (username, firstName, lastName, encryptedPassword, is
             password: encryptedPassword,
             isAdmin: isAdmin,
             isRegistered: isAdmin, // Admins are registered by default. Agents aren't
-            createdAt: getCurrentTimestamp()
+            createdAt: getCurrentTimestamp(),
+            chattingWithAgentUsernames: []
         });
     } catch(err) {
         throw err;
