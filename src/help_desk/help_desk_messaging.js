@@ -5,7 +5,7 @@
 
 const cookieParser = require('cookie-parser');
 const { default: helmet } = require('helmet');
-const { agentOnlySocket } = require('../auth/auth');
+const { agentOnlySocket } = require('../auth/utils');
 const agentDao = require('../db/dao/agent_dao');
 const agentMessagesDao = require('../db/dao/agent_messages_dao');
 const { server } = require('../server');
