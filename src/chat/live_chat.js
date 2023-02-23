@@ -2,7 +2,7 @@
 
 const cookieParser = require('cookie-parser');
 const { default: helmet } = require('helmet');
-const { populateAgentInSocket } = require('../auth/auth');
+const { populateAgentInSocket } = require('../auth/utils');
 const { getMessagesByUserId, addMessageToUser } = require('../db/dao/anonymous_user_dao');
 const { server } = require('../server');
 const { handleAgentLogin, handleUserLogin, handleAgentDisconnect, handleUserDisconnect, isUserIdAssignedToAgent, removeAssignedUserId, transferUser } = require('./queue_helper');

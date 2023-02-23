@@ -1,7 +1,7 @@
 // Creates the socket io object for the queue
 const cookieParser = require("cookie-parser");
 const { default: helmet } = require("helmet");
-const { populateAgentInSocket } = require("../auth/auth");
+const { populateAgentInSocket } = require("../auth/utils");
 const { server } = require('../server');
 
 const io = require("socket.io")(server, {

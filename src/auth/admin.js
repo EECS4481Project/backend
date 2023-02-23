@@ -4,10 +4,9 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const express = require('express');
-const { checkPasswordRequirements } = require('./utils');
+const { checkPasswordRequirements, isAgent } = require('./utils');
 const agentDao = require('../db/dao/agent_dao');
 const refreshSecretDao = require('../db/dao/refresh_secret_dao');
-const auth = require('./auth');
 const { isMongoDuplicateKeyError, isProd } = require('../utils');
 const constants = require('../constants');
 // Only use dotenv (ie. .env) file in dev mode
@@ -28,7 +27,7 @@ const router = express.Router();
  * @param {Next} next Next request
 */
 const isAdmin = async (req, res, next) => {
-    auth.isAgent(req, res, () => {
+    isAgent(req, res, () => {
         if (req.auth_info.isAdmin === true) {
             next();
         } else {

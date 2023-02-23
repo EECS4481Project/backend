@@ -1,5 +1,5 @@
-const { isAgent } = require("../auth/auth");
 const express = require('express');
+const { isAgent } = require('../auth/utils');
 const { getPageOfMessagesBetweenUsers } = require("../db/dao/agent_messages_dao");
 const router = express.Router();
 
