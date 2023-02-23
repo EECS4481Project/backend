@@ -1,16 +1,15 @@
 // Authentication functionality for help desk users
 const express = require('express');
 const bcrypt = require('bcrypt');
-const cookie = require('cookie');
 
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const agentDao = require('../db/dao/agent_dao');
 const refreshSecretDao = require('../db/dao/refresh_secret_dao');
 const constants = require('../constants');
-const { setNewAuthAndRefreshToken, getJsonAuthTokenIfValid, getJsonRefreshTokenIfValid, setRefreshedAuthAndRefreshToken } = require('./token_utils');
-const { getCurrentTimestamp, isProd } = require('../utils');
-const { checkPasswordRequirements } = require('./utils');
+const { setNewAuthAndRefreshToken } = require('./token_utils');
+const { isProd } = require('../utils');
+const { checkPasswordRequirements, isAgent } = require('./utils');
 
 const rateLimiter = rateLimit({
 	windowMs: 10 * 60 * 1000, // 10 minutes
@@ -18,86 +17,6 @@ const rateLimiter = rateLimit({
 	standardHeaders: false, // Disable the `RateLimit-*` headers
 	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
-
-/**
- * ONLY TO BE USED AS SOCKET IO MIDDLEWARE.
- * ie. io.use(populateAgentInSocket);
- * When used as middleware, proceeds if a handshake is from a signed in agent
- * and sets socket.auth_token to the agents info.
- * Disconnects otherwise.
- * @param {socket} socket 
- * @param {next} next
- */
-const agentOnlySocket = async (socket, next) => {
-    // TODO: (security) We don't refresh the token during the socket
-    // So if an auth token was stolen, they could use it to permanently stay
-    // in the hcat
-    let cookies = {};
-    if (typeof socket.handshake.headers.cookie == 'string') {
-        cookies = cookie.parse(socket.handshake.headers.cookie);
-    }
-    const user = await getJsonAuthTokenIfValid(cookies[constants.AUTH_COOKIE_NAME]);
-    if (!user || user.exp < getCurrentTimestamp()) {
-        return next(Error("auth"));
-    }
-    socket.auth_token = user;
-    next();
-}
-
-/**
- * ONLY TO BE USED AS SOCKET IO MIDDLEWARE.
- * ie. io.use(populateAgentInSocket);
- * When used as middleware, proceeds if a handshake is from a signed in agent
- * and sets socket.auth_token to the agents info.
- * socket.auth_token will be null if a non-agent.
- * @param {socket} socket 
- * @param {next} next
- */
-const populateAgentInSocket = async (socket, next) => {
-    // TODO: (security) We don't refresh the token during the socket
-    // So if an auth token was stolen, they could use it to permanently stay
-    // in the hcat
-    let cookies = {};
-    if (typeof socket.handshake.headers.cookie == 'string') {
-        cookies = cookie.parse(socket.handshake.headers.cookie);
-    }
-    const user = await getJsonAuthTokenIfValid(cookies[constants.AUTH_COOKIE_NAME]);
-    socket.auth_token = user;
-    next();
-}
-
-/**
- * ONLY TO BE USED AS HTTP REQUEST MIDDLEWARE.
- * When used as middleware, proceeds if request is from a signed in agent.
- * Also sets req.auth_info & req.refresh_info
- * Returns 401 status code otherwise.
- * Will also handle refreshing the users credentials.
- * Usage: router.get('/some_endpoint', isAgent, (req, res) => {...})
- * @param {*} req Request
- * @param {*} res Resolve
- * @param {*} next Callback to next request
- */
-const isAgent = async (req, res, next) => {
-    if (!req.cookies) {
-        return res.sendStatus(401);
-    }
-    const auth = await getJsonAuthTokenIfValid(req.cookies[constants.AUTH_COOKIE_NAME]);
-    const refresh = await getJsonRefreshTokenIfValid(req.cookies[constants.REFRESH_COOKIE_NAME]);
-    if (auth == null || refresh == null) {
-        return res.sendStatus(401);
-    }
-    // Renew auth token if needed
-    if (auth.exp <= getCurrentTimestamp()) {
-        const refreshed = await setRefreshedAuthAndRefreshToken(res, auth, refresh);
-        if (!refreshed) {
-            return res.sendStatus(401);
-        }
-    }
-    // proceed
-    req.auth_info = auth;
-    req.refresh_info = refresh;
-    next();
-}
 
 /**
  * When used as middleware, populates req.agent_name and proceeds.
@@ -297,9 +216,5 @@ const updatePassword = async (username, password, isRegistered, res) => {
 
 module.exports = {
     router,
-    isAgent,
     getName,
-    agentOnlySocket,
-    populateAgentInSocket,
-    agentOnlySocket
 }
