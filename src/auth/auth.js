@@ -88,7 +88,7 @@ router.post('/register', rateLimiter, async (req, res) => {
     // Validate that the given password is valid
     try {
         const agent = await getAgentIfPasswordMatches(username, password);
-        if (agent == null) {
+        if (agent == null || agent.isRegistered) {
             return res.sendStatus(400);
         }
     } catch(err) {
