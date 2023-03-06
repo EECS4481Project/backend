@@ -15,7 +15,6 @@ io.engine.use(cookieParser());
 
 // Populate agent if found (so we can kick them)
 io.use(populateAgentInSocket);
-// TODO: Add rate limiting
 
 module.exports = {
     io
