@@ -1,3 +1,4 @@
+const { IP_ADDRESS_HEADER } = require("./constants");
 
 /**
  * Get the current timestamp in UTC.
@@ -26,8 +27,18 @@ const isProd = () => {
     return process.env.NODE_ENV === 'production';
 }
 
+/**
+ * Get the clients IP address (set by fly.io)
+ * @param {Request} req 
+ * @returns 
+ */
+const getIpAddress = (req) => {
+    return req.headers[IP_ADDRESS_HEADER];
+}
+
 module.exports = {
     getCurrentTimestamp,
     isMongoDuplicateKeyError,
-    isProd
+    isProd,
+    getIpAddress
 }

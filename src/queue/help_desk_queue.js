@@ -1,7 +1,14 @@
 // Enqueues users & assigns them to an online help desk agent w/ availability
 const { enqueue, pushToFrontOfQueue, userDisconnectedFromQueue, getOnlineAgentCount } = require('./queue');
 const { io } = require('./queue_socketio');
+const { RateLimiterMemory } = require('rate-limiter-flexible')
 const { verifyAndParseFrontOfQueueToken } = require('./queue_token_utils');
+const { IP_ADDRESS_HEADER } = require('../constants');
+
+const rateLimiter = new RateLimiterMemory({
+    points: 10, // 10 handshakes
+    duration: 60 * 10, // 10 minutes
+})
 
 io.on('connection', async (socket) => {
     // Disconnect if request is from an agent -- this is a user only service
@@ -10,15 +17,18 @@ io.on('connection', async (socket) => {
         return;
     }
 
+    // Handle rate limiting
+    rateLimiter.consume(socket.handshake.headers[IP_ADDRESS_HEADER], 1).catch(() => {
+        socket.emit('429');
+        socket.disconnect();
+        return;
+    });
+
     socket.on('disconnect', () => {
         if (socket.joinedQueue) {
             userDisconnectedFromQueue(socket);
         }
     });
-
-    socket.on('ping', (msg) => {
-        socket.emit('pong');
-    })
 
     socket.on('join_queue', async (msg) => {
         if (typeof msg.token == 'string') {
@@ -51,9 +61,5 @@ io.on('connection', async (socket) => {
             // Notify user of # of online agents
             socket.emit('agents_online', getOnlineAgentCount());
         }
-    })
-
-    socket.on('test', msg => {
-        socket.emit('pong')
     })
 });

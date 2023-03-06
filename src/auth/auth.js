@@ -8,7 +8,7 @@ const agentDao = require('../db/dao/agent_dao');
 const refreshSecretDao = require('../db/dao/refresh_secret_dao');
 const constants = require('../constants');
 const { setNewAuthAndRefreshToken } = require('./token_utils');
-const { isProd } = require('../utils');
+const { isProd, getIpAddress } = require('../utils');
 const { checkPasswordRequirements, isAgent } = require('./utils');
 
 const rateLimiter = rateLimit({
@@ -16,6 +16,7 @@ const rateLimiter = rateLimit({
 	max: 10, // Limit each IP to max per `window`
 	standardHeaders: false, // Disable the `RateLimit-*` headers
 	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    keyGenerator: (req, res) => getIpAddress(req)
 });
 
 /**

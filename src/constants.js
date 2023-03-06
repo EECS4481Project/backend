@@ -9,4 +9,5 @@ module.exports = {
     SKIP_QUEUE_TOKEN_NAME: 'SKIP',
     CHAT_QUEUE_TOKEN_NAME: 'CHAT',
     AGENT_MESSAGE_FETCH_LIMIT: 200,
+    IP_ADDRESS_HEADER: 'x-real-ip'
 }
