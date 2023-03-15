@@ -111,7 +111,6 @@ const isAgent = async (req, res, next) => {
     }
     const auth = await getJsonAuthTokenIfValid(req.headers[AUTH_HEADER_NAME]);
     const refresh = await getJsonRefreshTokenIfValid(req.cookies[REFRESH_COOKIE_NAME]);
-    console.log(auth)
     if (auth == null || refresh == null) {
         return res.sendStatus(401);
     }
