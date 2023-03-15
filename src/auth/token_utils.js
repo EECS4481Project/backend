@@ -23,13 +23,12 @@ const setNewAuthAndRefreshToken = async (agent, res) => {
     if (refreshToken == null) {
         return res.sendStatus(500);
     }
-    setCookies(res, authToken, refreshToken);
+    setCookieAndHeader(res, authToken, refreshToken);
 }
 
 /**
- * Expires the original refresh token, and updates the auth & refresh token
- * cookies.
- * If the refresh token is invalid, it will remove the auth & refresh cookies.
+ * Expires the original refresh token, and updates the auth & refresh tokens
+ * If the refresh token is invalid, it will remove the refresh cookie.
  * @param {Response} res 
  * @param {Object} authToken Json auth token
  * @param {Object} refreshToken Json refresh token
@@ -50,18 +49,16 @@ const setRefreshedAuthAndRefreshToken = async (res, authToken, refreshToken) => 
     // Check if secret is valid
     const isValidSecret = await bcrypt.compare(refreshToken.secret, encryptedSecret);
     if (!isValidSecret) {
-        res.clearCookie(constants.AUTH_COOKIE_NAME);
         res.clearCookie(constants.REFRESH_COOKIE_NAME);
         return false;
     }
     const newAuthToken = await generateAuthToken(authToken.username, authToken.firstName, authToken.lastName, authToken.isAdmin);
     const newRefreshToken = await generateRefreshToken(authToken.username);
     if (newRefreshToken == null) {
-        res.clearCookie(constants.AUTH_COOKIE_NAME);
         res.clearCookie(constants.REFRESH_COOKIE_NAME);
         return res.sendStatus(500);
     }
-    setCookies(res, newAuthToken, newRefreshToken);
+    setCookieAndHeader(res, newAuthToken, newRefreshToken);
     return true;
 }
 
@@ -142,17 +139,13 @@ const generateRefreshToken = async (username) => {
 }
 
 /**
- * Sets the auth & refresh cookies based on the given params.
+ * Sets the refresh cookie & auth header based on the given params.
  * @param {Response} res
  * @param {string} authToken 
  * @param {string} refreshToken 
  */
-const setCookies = (res, authToken, refreshToken) => {
+const setCookieAndHeader = (res, authToken, refreshToken) => {
     // Set cookie options
-    const authTokenOptions = {
-        maxAge: constants.REFRESH_TOKEN_EXPIRY_SECONDS * 1000,
-        sameSite: 'strict'
-    };
     const refreshTokenOptions = {
         maxAge: constants.REFRESH_TOKEN_EXPIRY_SECONDS * 1000,
         httpOnly: true,
@@ -160,11 +153,10 @@ const setCookies = (res, authToken, refreshToken) => {
     }
     // In prod, we should only use https
     if (isProd()) {
-        authTokenOptions["secure"] = true;
         refreshTokenOptions["secure"] = true;
     }
     res.cookie(constants.REFRESH_COOKIE_NAME, refreshToken, refreshTokenOptions);
-    res.cookie(constants.AUTH_COOKIE_NAME, authToken, authTokenOptions);
+    res.set(constants.AUTH_HEADER_NAME, authToken);
 }
 
 module.exports = {

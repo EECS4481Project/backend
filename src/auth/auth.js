@@ -61,7 +61,6 @@ router.post('/login', rateLimiter, async (req, res) => {
  */
 router.post('/logout', isAgent, async (req, res) => {
     refreshSecretDao.getAndDeleteRefreshSecret(req.refresh_info.id);
-    res.clearCookie(constants.AUTH_COOKIE_NAME);
     res.clearCookie(constants.REFRESH_COOKIE_NAME);
     res.sendStatus(200);
 })
