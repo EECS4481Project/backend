@@ -4,36 +4,37 @@ const { agentMessagesSchema } = require('./schema/agent_messages');
 const { anonymousUserSchema } = require('./schema/anonymous_user');
 const { queueTokenSchema } = require('./schema/queue_token');
 const { refreshSecretSchema } = require('./schema/refresh_secret');
-const agentSchema = require('./schema/agent').agentSchema;
+const { agentSchema } = require('./schema/agent');
+
 if (!isProd()) {
-    require('dotenv').config();
+  require('dotenv').config();
 }
 
-let connection = mongoose;
+const connection = mongoose;
 
 if (isProd()) {
-    // TODO: Connect to prod db
-    mongoose.connect(process.env.MONGO_DB_URL, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-        auth: {
-            username: process.env.MONGO_USERNAME,
-            password: process.env.MONGO_PASSWORD,
-        },
-        dbName: "main"
-    });
+  // TODO: Connect to prod db
+  mongoose.connect(process.env.MONGO_DB_URL, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    auth: {
+      username: process.env.MONGO_USERNAME,
+      password: process.env.MONGO_PASSWORD,
+    },
+    dbName: 'main',
+  });
 } else {
-    // Connect to dev db
-    mongoose.connect(process.env.MONGO_DB_URL, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-    });
+  // Connect to dev db
+  mongoose.connect(process.env.MONGO_DB_URL, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  });
 }
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'failed to connect to db:'));
-db.once('open', function () {
-    console.log('connected to mongodb');
+db.once('open', () => {
+  console.log('connected to mongodb');
 });
 
 // Add schemas to DB
@@ -44,12 +45,12 @@ const anonymousUser = connection.model('AnonymousUser', anonymousUserSchema);
 const agentMessages = connection.model('AgentMessages', agentMessagesSchema);
 
 module.exports = {
-    // Export dao's for use
-    agent,
-    refreshSecret,
-    queueToken,
-    anonymousUser,
-    agentMessages,
-    // Export mongoose for graceful disconnect later
-    mongoose
+  // Export dao's for use
+  agent,
+  refreshSecret,
+  queueToken,
+  anonymousUser,
+  agentMessages,
+  // Export mongoose for graceful disconnect later
+  mongoose,
 };

@@ -12,7 +12,7 @@ const constants = require('../constants');
 // Only use dotenv (ie. .env) file in dev mode
 // In prod, it should consume the real environment
 if (!isProd()) {
-    require('dotenv').config();
+  require('dotenv').config();
 }
 
 const router = express.Router();
@@ -27,46 +27,45 @@ const router = express.Router();
  * @param {Next} next Next request
 */
 const isAdmin = async (req, res, next) => {
-    isAgent(req, res, () => {
-        if (req.auth_info.isAdmin === true) {
-            next();
-        } else {
-            return res.sendStatus(401);
-        }
-    })
-}
+  isAgent(req, res, () => {
+    if (req.auth_info.isAdmin === true) {
+      next();
+    } else {
+      return res.sendStatus(401);
+    }
+  });
+};
 
 /**
  * Registers an admin user.
- * @param {string} username 
- * @param {string} firstName 
- * @param {string} lastName 
+ * @param {string} username
+ * @param {string} firstName
+ * @param {string} lastName
  * @param {string} password
  * @return {success: bool, failure_reason: string}
  */
 const registerAdminUser = async (username, firstName, lastName, password) => {
-    if (typeof username != 'string' || typeof password != 'string' ||
-        typeof firstName != 'string' || typeof lastName != 'string') {
-        return {success: false, failure_reason: "Invalid args"};
+  if (typeof username !== 'string' || typeof password !== 'string'
+        || typeof firstName !== 'string' || typeof lastName !== 'string') {
+    return { success: false, failure_reason: 'Invalid args' };
+  }
+  // Check if password is valid (only for prod)
+  if (isProd() && !checkPasswordRequirements(password)) {
+    return { success: false, failure_reason: "Password didn't meet reqs" };
+  }
+  // Encrypt password
+  const passwordHash = await bcrypt.hash(password, constants.PASSWORD_SALT_ROUNDS);
+  // Store new user
+  try {
+    await agentDao.registerAdmin(username, firstName, lastName, passwordHash);
+    return { success: true, failure_reason: '' };
+  } catch (err) {
+    if (isMongoDuplicateKeyError(err)) {
+      return { success: false, failure_reason: 'username already exists' };
     }
-    // Check if password is valid (only for prod)
-    if (isProd() && !checkPasswordRequirements(password)) {
-        return {success: false, failure_reason: "Password didn't meet reqs"};
-    }
-    // Encrypt password
-    const passwordHash = await bcrypt.hash(password, constants.PASSWORD_SALT_ROUNDS);
-    // Store new user
-    try {
-        await agentDao.registerAdmin(username, firstName, lastName, passwordHash);
-        return {success: true, failure_reason: ""};
-    } catch(err) {
-        if (isMongoDuplicateKeyError(err)) {
-            return {success: false, failure_reason: "username already exists"};
-        } else {
-            console.error(err);
-            return {success: false, failure_reason: err.toString()};
-        }
-    }
+    console.error(err);
+    return { success: false, failure_reason: err.toString() };
+  }
 };
 
 /**
@@ -77,93 +76,93 @@ const registerAdminUser = async (username, firstName, lastName, password) => {
  * - If the username already exists, returns 409
  * - If anything else goes wrong, returns 500.
  */
-router.post("/register_temp_user", isAdmin, async (req, res) => {
-    const username = req.body.username;
-    const firstName = req.body.firstName;
-    const lastName = req.body.lastName;
-    if (typeof username != "string" || typeof firstName != "string" || typeof lastName != "string") {
-        return res.sendStatus(400);
+router.post('/register_temp_user', isAdmin, async (req, res) => {
+  const { username } = req.body;
+  const { firstName } = req.body;
+  const { lastName } = req.body;
+  if (typeof username !== 'string' || typeof firstName !== 'string' || typeof lastName !== 'string') {
+    return res.sendStatus(400);
+  }
+  // Generate random password
+  const password = crypto.randomBytes(32).toString('hex');
+  // Encrypt password
+  const passwordHash = await bcrypt.hash(password, constants.PASSWORD_SALT_ROUNDS);
+  try {
+    // Store user in db
+    await agentDao.registerAgent(username, firstName, lastName, passwordHash);
+    return res.send({ password });
+  } catch (err) {
+    if (isMongoDuplicateKeyError(err)) {
+      return res.sendStatus(409);
     }
-    // Generate random password
-    const password = crypto.randomBytes(32).toString('hex');
-    // Encrypt password
-    const passwordHash = await bcrypt.hash(password, constants.PASSWORD_SALT_ROUNDS);
-    try {
-        // Store user in db
-        await agentDao.registerAgent(username, firstName, lastName, passwordHash);
-        return res.send({ password: password });
-    } catch(err) {
-        if (isMongoDuplicateKeyError(err)) {
-            return res.sendStatus(409);
-        }
-        console.error(err);
-        return res.sendStatus(500);
-    }
+    console.error(err);
+    return res.sendStatus(500);
+  }
 });
 
 /**
  * Returns json list of all registered users. Returns 500 if something
- * goes wrong. Format [{username: str, firstName: str, lastName: str, isDeleted: bool, isAdmin: bool}, ...]
+ * goes wrong. Format [{username: str, firstName: str, lastName: str,
+ * isDeleted: bool, isAdmin: bool}, ...]
  */
-router.get("/all_registered_users", isAdmin, async (req, res) => {
-    try {
-        res.send(await agentDao.getAllRegisteredUsers());
-    } catch(err) {
-        console.error(err);
-        return res.sendStatus(500);
-    }
-})
+router.get('/all_registered_users', isAdmin, async (req, res) => {
+  try {
+    res.send(await agentDao.getAllRegisteredUsers());
+  } catch (err) {
+    console.error(err);
+    return res.sendStatus(500);
+  }
+});
 
 /**
  * Returns json list of all registered users. Returns 500 if something
  * goes wrong. Format [{username: str, firstName: str, lastName: str, isAdmin: bool}, ...]
  */
-router.get("/all_nonregistered_users", isAdmin, async (req, res) => {
-    try {
-        res.send(await agentDao.getAllNonRegisteredUsers());
-    } catch(err) {
-        console.error(err);
-        return res.sendStatus(500);
-    }
-})
+router.get('/all_nonregistered_users', isAdmin, async (req, res) => {
+  try {
+    res.send(await agentDao.getAllNonRegisteredUsers());
+  } catch (err) {
+    console.error(err);
+    return res.sendStatus(500);
+  }
+});
 
 /**
  * Returns json list of all deleted users. Returns 500 if something
  * goes wrong. Format [{username: str, firstName: str, lastName: str, isAdmin: bool}, ...]
  */
-router.get("/all_deleted_users", isAdmin, async (req, res) => {
-    try {
-        res.send(await agentDao.getAllDeletedUsers());
-    } catch(err) {
-        console.error(err);
-        return res.sendStatus(500);
-    }
-})
+router.get('/all_deleted_users', isAdmin, async (req, res) => {
+  try {
+    res.send(await agentDao.getAllDeletedUsers());
+  } catch (err) {
+    console.error(err);
+    return res.sendStatus(500);
+  }
+});
 
 /**
  * Deletes the agent, along with their refresh tokens.
  * Returns 200 upon success, 400 on bad input, 404 if the user wasn't found,
  * and 500 if there's a database error.
  */
-router.post("/delete_user", isAdmin, async (req, res) => {
-    const username = req.body.username;
-    if (typeof username != 'string') {
-        return res.sendStatus(400);
+router.post('/delete_user', isAdmin, async (req, res) => {
+  const { username } = req.body;
+  if (typeof username !== 'string') {
+    return res.sendStatus(400);
+  }
+  // Delete user
+  try {
+    const deletedAgent = await agentDao.deleteUser(username);
+    const deletedTokens = await refreshSecretDao.deleteRefreshSecretsForUsername(username);
+    if (deletedAgent && deletedTokens) {
+      return res.sendStatus(200);
     }
-    // Delete user
-    try {
-        const deletedAgent = await agentDao.deleteUser(username);
-        const deletedTokens = await refreshSecretDao.deleteRefreshSecretsForUsername(username);
-        if (deletedAgent && deletedTokens) {
-            return res.sendStatus(200);
-        } else {
-            return res.sendStatus(404);
-        }
-    } catch(err) {
-        console.error(err);
-        res.sendStatus(200);
-    }
-})
+    return res.sendStatus(404);
+  } catch (err) {
+    console.error(err);
+    res.sendStatus(200);
+  }
+});
 
 /**
  * Sets the user back to a temp user, and resets their password to a random
@@ -173,35 +172,34 @@ router.post("/delete_user", isAdmin, async (req, res) => {
  * - 404 error code if user not found
  * - 500 error code if something went wrong
  */
-router.post("/unregister_user", isAdmin, async (req, res) => {
-    const username = req.body.username;
-    if (typeof username != 'string') {
-        return res.sendStatus(400);
+router.post('/unregister_user', isAdmin, async (req, res) => {
+  const { username } = req.body;
+  if (typeof username !== 'string') {
+    return res.sendStatus(400);
+  }
+  // Generate random password
+  const password = crypto.randomBytes(32).toString('hex');
+  // Encrypt password
+  const passwordHash = await bcrypt.hash(password, constants.PASSWORD_SALT_ROUNDS);
+  try {
+    const updateSuccess = await agentDao.updateAgent(username, {
+      password: passwordHash,
+      isRegistered: false,
+    });
+    if (updateSuccess) {
+      res.send({ password });
+      // Delete all refresh tokens for the user (async)
+      refreshSecretDao.deleteRefreshSecretsForUsername(username);
+      return;
     }
-    // Generate random password
-    const password = crypto.randomBytes(32).toString('hex');
-    // Encrypt password
-    const passwordHash = await bcrypt.hash(password, constants.PASSWORD_SALT_ROUNDS);
-    try {
-        const updateSuccess = await agentDao.updateAgent(username, {
-            password: passwordHash,
-            isRegistered: false
-        });
-        if (updateSuccess) {
-            res.send({ password: password });
-            // Delete all refresh tokens for the user (async)
-            refreshSecretDao.deleteRefreshSecretsForUsername(username);
-            return;
-        } else {
-            res.sendStatus(404);
-        }
-    } catch(err) {
-        console.error(err);
-        return res.sendStatus(500);
-    }
-})
+    res.sendStatus(404);
+  } catch (err) {
+    console.error(err);
+    return res.sendStatus(500);
+  }
+});
 
 module.exports = {
-    registerAdminUser,
-    router
-}
+  registerAdminUser,
+  router,
+};

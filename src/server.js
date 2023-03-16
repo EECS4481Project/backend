@@ -16,6 +16,6 @@ app.use(helmet());
 app.use('/api', router);
 
 module.exports = {
-    router,
-    server
-}
+  router,
+  server,
+};
