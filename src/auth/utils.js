@@ -11,6 +11,7 @@ const { getJsonAuthTokenIfValid, getJsonRefreshTokenIfValid, setRefreshedAuthAnd
  * - Contains 1+ uppercase
  * - Contains 1+ number
  * - Contains 1+ symbols
+ * - Contains no more than 3 characters in a row
  * @param {string} password password to verify
  * @return true if a given password meets the requirements. False otherwise.
  */
@@ -19,6 +20,9 @@ const checkPasswordRequirements = (password) => {
   let uppercaseCount = 0;
   let numberCount = 0;
   let symbolCount = 0;
+  let lastChar = '';
+  let duplicateCount = 0;
+  let isDuplicate = true;
   for (let i = 0; i < password.length; i++) {
     if (password.charCodeAt(i) >= 'a'.charCodeAt(0)
             && password.charCodeAt(i) <= 'z'.charCodeAt(0)) {
@@ -32,10 +36,22 @@ const checkPasswordRequirements = (password) => {
     } else {
       symbolCount += 1;
     }
+    
+    if (password[i] === lastChar) {
+      duplicateCount++;
+    } else {
+      duplicateCount = 0;
+      lastChar = password[i];
+    }
+    if (duplicateCount > 2) {
+      isDuplicate = false;
+    }
   }
+  
   return lowercaseCount >= 1 && uppercaseCount >= 1 && numberCount >= 1
-        && symbolCount >= 1 && password.length >= 8;
+        && symbolCount >= 1 && password.length >= 8 && isDuplicate;
 };
+
 
 /**
  * ONLY TO BE USED AS SOCKET IO MIDDLEWARE.
