@@ -11,7 +11,7 @@ const { getJsonAuthTokenIfValid, getJsonRefreshTokenIfValid, setRefreshedAuthAnd
  * - Contains 1+ uppercase
  * - Contains 1+ number
  * - Contains 1+ symbols
- * - Contains no more than 2 characters in a row
+ * - Contains no more than 3 characters in a row
  * @param {string} password password to verify
  * @return true if a given password meets the requirements. False otherwise.
  */
@@ -43,7 +43,7 @@ const checkPasswordRequirements = (password) => {
       duplicateCount = 0;
       lastChar = password[i];
     }
-    if (duplicateCount > 1) {
+    if (duplicateCount > 2) {
       isDuplicate = false;
     }
   }
