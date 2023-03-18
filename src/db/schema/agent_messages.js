@@ -6,6 +6,7 @@ const agentMessagesSchema = new mongoose.Schema({
   receiverUsername: { type: String, required: true },
   message: { type: String, required: true },
   timestamp: { type: Number, required: true, index: true },
+  fileId: { type: String },
 });
 
 exports.agentMessagesSchema = agentMessagesSchema;

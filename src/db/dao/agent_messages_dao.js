@@ -20,7 +20,7 @@ const getPageOfMessagesBetweenUsers = async (username1, username2, lastTimestamp
     ],
     timestamp: { $lt: lastTimestamp },
   }, {
-    message: 1, timestamp: 1, senderUsername: 1, _id: 0,
+    message: 1, timestamp: 1, senderUsername: 1, fileId: 1, _id: 0,
   }).sort({ timestamp: -1 }).limit(constants.AGENT_MESSAGE_FETCH_LIMIT).lean();
 };
 
@@ -40,7 +40,25 @@ const writeMessage = async (senderUsername, receiverUsername, message) => {
   }).then(() => true);
 };
 
+/**
+ * Writes file id to the db as a message.
+ * @param {string} senderUsername
+ * @param {string} receiverUsername
+ * @param {string} message
+ * @throws if there is a db error
+ */
+const writeFileMessage = async (senderUsername, receiverUsername, fileId) => {
+  return agentMessages.create({
+    senderUsername,
+    receiverUsername,
+    message: '',
+    fileId,
+    timestamp: Date.now(),
+  }).then(() => true);
+};
+
 module.exports = {
   getPageOfMessagesBetweenUsers,
   writeMessage,
+  writeFileMessage,
 };
