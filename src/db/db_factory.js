@@ -5,6 +5,8 @@ const { anonymousUserSchema } = require('./schema/anonymous_user');
 const { queueTokenSchema } = require('./schema/queue_token');
 const { refreshSecretSchema } = require('./schema/refresh_secret');
 const { agentSchema } = require('./schema/agent');
+const { userFilesSchema } = require('./schema/user_files');
+const { USER_FILES_DOCUMENT_NAME } = require('../constants');
 
 if (!isProd()) {
   require('dotenv').config();
@@ -43,6 +45,7 @@ const refreshSecret = connection.model('RefreshSecret', refreshSecretSchema);
 const queueToken = connection.model('QueueToken', queueTokenSchema);
 const anonymousUser = connection.model('AnonymousUser', anonymousUserSchema);
 const agentMessages = connection.model('AgentMessages', agentMessagesSchema);
+const userFiles = connection.model(USER_FILES_DOCUMENT_NAME, userFilesSchema);
 
 module.exports = {
   // Export dao's for use
@@ -51,6 +54,7 @@ module.exports = {
   queueToken,
   anonymousUser,
   agentMessages,
+  userFiles,
   // Export mongoose for graceful disconnect later
   mongoose,
 };

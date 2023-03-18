@@ -1,7 +1,7 @@
 // Chat between help_desk_user <-> anon using sockets
 const cookieParser = require('cookie-parser');
 const { default: helmet } = require('helmet');
-const { getMessagesByUserId, addMessageToUser } = require('../db/dao/anonymous_user_dao');
+const { getMessagesByUserId, addMessageToUser, addFileToUser } = require('../db/dao/anonymous_user_dao');
 const {
   handleAgentLogin, handleUserLogin, handleAgentDisconnect,
   handleUserDisconnect, isUserIdAssignedToAgent, removeAssignedUserId,
@@ -10,10 +10,12 @@ const {
 const { getSocketForAgent, getSocketForUser } = require('./socket_mapping');
 const { populateAgentInSocket } = require('../auth/utils');
 const { server } = require('../server');
+const { writeFile } = require('../db/dao/user_files_dao');
 
 // eslint-disable-next-line import/order
 const io = require('socket.io')(server, {
   path: '/api/start_chat',
+  maxHttpBufferSize: 2e6, // Max 2 mb
 });
 
 // Set secure default headers
@@ -175,6 +177,90 @@ io.on('connection', async (socket) => {
         socket.user_agent_info.username,
         true,
       );
+    }
+  });
+
+  socket.on('file-upload', async (data) => {
+    if (!Buffer.isBuffer(data.file) || typeof data.name !== 'string' || typeof data.type !== 'string') {
+      return;
+    }
+    // Convert file to b64
+    const base64File = Buffer.from(data.file).toString('base64');
+    // Agent case
+    if (socket.auth_token) {
+      if (typeof data.userId !== 'string') {
+        return;
+      }
+      // Only allow agent to message assigned users
+      if (!isUserIdAssignedToAgent(data.userId, socket.auth_token.username)) {
+        return;
+      }
+      const userSocket = getSocketForUser(data.userId);
+      if (userSocket) {
+        // Notify user
+        userSocket.emit('message', {
+          message: data.message,
+          timestamp: Date.now(),
+          correspondentUsername: socket.auth_token.username,
+          isFromUser: false,
+          file: base64File,
+          fileName: data.name,
+          fileType: data.type,
+        });
+        // Notify agent of file
+        socket.emit('message', {
+          message: data.message,
+          timestamp: Date.now(),
+          correspondentUsername: data.userId,
+          isFromUser: false,
+          file: base64File,
+          fileName: data.name,
+          fileType: data.type,
+        });
+      }
+      // Write file & message to db for transcript
+      try {
+        const fileId = await writeFile(base64File, data.name, data.type);
+        if (fileId) {
+          addFileToUser(data.userId, fileId, socket.auth_token.username, false);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      // User case
+      const agentSocket = getSocketForAgent(socket.user_agent_info.username);
+      if (agentSocket) {
+        // Notify agent
+        agentSocket.emit('message', {
+          message: data.message,
+          timestamp: Date.now(),
+          correspondentUsername: socket.user_info.userId,
+          isFromUser: true,
+          file: base64File,
+          fileName: data.name,
+          fileType: data.type,
+        });
+        // Notify user
+        socket.emit('message', {
+          message: data.message,
+          timestamp: Date.now(),
+          correspondentUsername: socket.user_agent_info.username,
+          isFromUser: true,
+          file: base64File,
+          fileName: data.name,
+          fileType: data.type,
+        });
+      }
+      // Write file & message to db for transcript
+      try {
+        const fileId = await writeFile(base64File, data.name, data.type);
+        if (fileId) {
+          addFileToUser(socket.user_info.userId, fileId, socket.user_agent_info.username, true);
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
   });
 

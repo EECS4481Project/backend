@@ -52,6 +52,28 @@ const addMessageToUser = async (userId, message, correspondentUsername, isFromUs
 };
 
 /**
+ * Adds the message to the given userId
+ * @param {string} userId
+ * @param {string} message
+ * @param {string} correspondentUsername Agents username
+ * @param {boolean} isFromUser true if the userId is the sender. False if the agent is.
+ * @throws if there is a db error
+ */
+const addFileToUser = async (userId, fileId, correspondentUsername, isFromUser) => {
+  return anonymousUser.updateOne({ _id: userId }, {
+    $push: {
+      messages: {
+        message: '',
+        correspondentUsername,
+        isFromUser,
+        timestamp: Date.now(),
+        file: fileId,
+      },
+    },
+  }).then(() => true);
+};
+
+/**
  * Doesn't support paging, as anonymous chats are short-lived.
  * Returns all messages for th given user id.
  * @param {string} userId
@@ -62,12 +84,13 @@ const getMessagesByUserId = async (userId) => {
   return anonymousUser.findOne(
     { _id: userId },
     { messages: 1, _id: 0 },
-  ).sort({ timestamp: -1 }).lean().then((user) => {
-    if (user) {
-      return user.messages;
-    }
-    return [];
-  });
+  ).sort({ timestamp: -1 }).populate('messages.file').lean()
+    .then((user) => {
+      if (user) {
+        return user.messages;
+      }
+      return [];
+    });
 };
 
 module.exports = {
@@ -75,4 +98,5 @@ module.exports = {
   addUser,
   addMessageToUser,
   getMessagesByUserId,
+  addFileToUser,
 };

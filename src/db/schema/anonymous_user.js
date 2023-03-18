@@ -1,5 +1,6 @@
 // Schema for anonymous chat users
 const mongoose = require('mongoose');
+const { USER_FILES_DOCUMENT_NAME } = require('../../constants');
 
 const anonymousUserSchema = new mongoose.Schema({
   firstName: { type: String, required: true },
@@ -11,6 +12,7 @@ const anonymousUserSchema = new mongoose.Schema({
       correspondentUsername: { type: String, required: true },
       isFromUser: { type: Boolean, required: true },
       timestamp: { type: Number, required: true, index: true },
+      file: { type: mongoose.Schema.Types.ObjectId, ref: USER_FILES_DOCUMENT_NAME },
       _id: false,
     },
   ],
