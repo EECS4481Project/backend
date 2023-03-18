@@ -12,18 +12,13 @@ const { getSocketForAgent, getSocketForUser } = require('./socket_mapping');
 const { populateAgentInSocket } = require('../auth/utils');
 const { server } = require('../server');
 const { writeFile } = require('../db/dao/user_files_dao');
+const { validateFileType } = require('../utils');
 
 // eslint-disable-next-line import/order
 const io = require('socket.io')(server, {
   path: '/api/start_chat',
   maxHttpBufferSize: 3e6, // Max 3 mb
 });
-
-const allowedFileTypes = [
-  'image',
-  'video',
-  'application/pdf',
-];
 
 // Set secure default headers
 io.engine.use(helmet());
@@ -33,20 +28,6 @@ io.engine.use(cookieParser());
 io.use(populateAgentInSocket);
 
 const onlineAgents = new Set();
-
-/**
-// Returns true if the given mimetype is allowed, false otherwise
- * @param {string} mime file mimetype
- * @returns true if allowed, false otherwise.
- */
-const validateFileType = (mime) => {
-  for (let i = 0; i < allowedFileTypes.length; i++) {
-    if (mime.startsWith(allowedFileTypes[i]) || mime === allowedFileTypes[i]) {
-      return true;
-    }
-  }
-  return false;
-};
 
 /*
 Queue related functionality:

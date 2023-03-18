@@ -1,5 +1,25 @@
 const { IP_ADDRESS_HEADER } = require('./constants');
 
+const allowedFileTypes = [
+  'image',
+  'video',
+  'application/pdf',
+];
+
+/**
+ * Returns true if the given mimetype is allowed, false otherwise
+ * @param {string} mime file mimetype
+ * @returns true if allowed, false otherwise.
+ */
+const validateFileType = (mime) => {
+  for (let i = 0; i < allowedFileTypes.length; i++) {
+    if (mime.startsWith(allowedFileTypes[i]) || mime === allowedFileTypes[i]) {
+      return true;
+    }
+  }
+  return false;
+};
+
 /**
  * Get the current timestamp in UTC.
  * @returns Timestamp
@@ -41,4 +61,5 @@ module.exports = {
   isMongoDuplicateKeyError,
   isProd,
   getIpAddress,
+  validateFileType,
 };
