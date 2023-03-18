@@ -44,14 +44,15 @@ const writeMessage = async (senderUsername, receiverUsername, message) => {
  * Writes file id to the db as a message.
  * @param {string} senderUsername
  * @param {string} receiverUsername
- * @param {string} message
+ * @param {string} fileId id of stored file
+ * @param {string} fileName file name
  * @throws if there is a db error
  */
-const writeFileMessage = async (senderUsername, receiverUsername, fileId) => {
+const writeFileMessage = async (senderUsername, receiverUsername, fileId, fileName) => {
   return agentMessages.create({
     senderUsername,
     receiverUsername,
-    message: '',
+    message: fileName,
     fileId,
     timestamp: Date.now(),
   }).then(() => true);
