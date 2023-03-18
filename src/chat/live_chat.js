@@ -16,7 +16,7 @@ const { writeFile } = require('../db/dao/user_files_dao');
 // eslint-disable-next-line import/order
 const io = require('socket.io')(server, {
   path: '/api/start_chat',
-  maxHttpBufferSize: 2e6, // Max 2 mb
+  maxHttpBufferSize: 3e6, // Max 3 mb
 });
 
 const allowedFileTypes = [
