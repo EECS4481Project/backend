@@ -230,9 +230,11 @@ io.on('connection', async (socket) => {
           timestamp: Date.now(),
           correspondentUsername: socket.auth_token.username,
           isFromUser: false,
-          file: base64File,
-          fileName: data.name,
-          fileType: fileType.mime,
+          file: {
+            file: base64File,
+            fileName: data.name,
+            fileType: fileType.mime,
+          },
         });
         // Notify agent of file
         socket.emit('message', {
@@ -240,9 +242,11 @@ io.on('connection', async (socket) => {
           timestamp: Date.now(),
           correspondentUsername: data.userId,
           isFromUser: false,
-          file: base64File,
-          fileName: data.name,
-          fileType: fileType.mime,
+          file: {
+            file: base64File,
+            fileName: data.name,
+            fileType: fileType.mime,
+          },
         });
       }
       // Write file & message to db for transcript
@@ -264,9 +268,11 @@ io.on('connection', async (socket) => {
           timestamp: Date.now(),
           correspondentUsername: socket.user_info.userId,
           isFromUser: true,
-          file: base64File,
-          fileName: data.name,
-          fileType: fileType.mime,
+          file: {
+            file: base64File,
+            fileName: data.name,
+            fileType: fileType.mime,
+          },
         });
         // Notify user
         socket.emit('message', {
@@ -274,9 +280,11 @@ io.on('connection', async (socket) => {
           timestamp: Date.now(),
           correspondentUsername: socket.user_agent_info.username,
           isFromUser: true,
-          file: base64File,
-          fileName: data.name,
-          fileType: fileType.mime,
+          file: {
+            file: base64File,
+            fileName: data.name,
+            fileType: fileType.mime,
+          },
         });
       }
       // Write file & message to db for transcript
