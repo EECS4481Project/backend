@@ -1,6 +1,7 @@
 // Chat between help_desk_user <-> anon using sockets
 const cookieParser = require('cookie-parser');
 const { default: helmet } = require('helmet');
+const fileTypeFromBuffer = require('file-type').fromBuffer;
 const { getMessagesByUserId, addMessageToUser, addFileToUser } = require('../db/dao/anonymous_user_dao');
 const {
   handleAgentLogin, handleUserLogin, handleAgentDisconnect,
@@ -18,6 +19,12 @@ const io = require('socket.io')(server, {
   maxHttpBufferSize: 2e6, // Max 2 mb
 });
 
+const allowedFileTypes = [
+  'image',
+  'video',
+  'application/pdf',
+];
+
 // Set secure default headers
 io.engine.use(helmet());
 // Parse cookies
@@ -26,6 +33,21 @@ io.engine.use(cookieParser());
 io.use(populateAgentInSocket);
 
 const onlineAgents = new Set();
+
+/**
+// Returns true if the given mimetype is allowed, false otherwise
+ * @param {string} mime file mimetype
+ * @returns true if allowed, false otherwise.
+ */
+const validateFileType = (mime) => {
+  console.log(mime);
+  for (let i = 0; i < allowedFileTypes.length; i++) {
+    if (mime.startsWith(allowedFileTypes[i]) || mime === allowedFileTypes[i]) {
+      return true;
+    }
+  }
+  return false;
+};
 
 /*
 Queue related functionality:
@@ -181,7 +203,13 @@ io.on('connection', async (socket) => {
   });
 
   socket.on('file-upload', async (data) => {
-    if (!Buffer.isBuffer(data.file) || typeof data.name !== 'string' || typeof data.type !== 'string') {
+    // Return if invalid input
+    if (!Buffer.isBuffer(data.file) || typeof data.name !== 'string') {
+      return;
+    }
+    const fileType = await fileTypeFromBuffer(data.file);
+    // Return if file type isn't allowed
+    if (!validateFileType(fileType.mime)) {
       return;
     }
     // Convert file to b64
@@ -205,7 +233,7 @@ io.on('connection', async (socket) => {
           isFromUser: false,
           file: base64File,
           fileName: data.name,
-          fileType: data.type,
+          fileType: fileType.mime,
         });
         // Notify agent of file
         socket.emit('message', {
@@ -215,12 +243,12 @@ io.on('connection', async (socket) => {
           isFromUser: false,
           file: base64File,
           fileName: data.name,
-          fileType: data.type,
+          fileType: fileType.mime,
         });
       }
       // Write file & message to db for transcript
       try {
-        const fileId = await writeFile(base64File, data.name, data.type);
+        const fileId = await writeFile(base64File, data.name, fileType.mime);
         if (fileId) {
           addFileToUser(data.userId, fileId, socket.auth_token.username, false);
         }
@@ -239,7 +267,7 @@ io.on('connection', async (socket) => {
           isFromUser: true,
           file: base64File,
           fileName: data.name,
-          fileType: data.type,
+          fileType: fileType.mime,
         });
         // Notify user
         socket.emit('message', {
@@ -249,12 +277,12 @@ io.on('connection', async (socket) => {
           isFromUser: true,
           file: base64File,
           fileName: data.name,
-          fileType: data.type,
+          fileType: fileType.mime,
         });
       }
       // Write file & message to db for transcript
       try {
-        const fileId = await writeFile(base64File, data.name, data.type);
+        const fileId = await writeFile(base64File, data.name, fileType.mime);
         if (fileId) {
           addFileToUser(socket.user_info.userId, fileId, socket.user_agent_info.username, true);
         }
