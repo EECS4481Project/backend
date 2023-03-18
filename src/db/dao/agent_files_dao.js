@@ -29,7 +29,7 @@ const storeAgentFile = (b64File, fileName, fileType, senderUsername, recipientUs
  * @throws if a db error occurs.
  */
 const getAgentFile = (fileId, accessingUsername) => {
-  return agentFiles.find({
+  return agentFiles.findOne({
     _id: fileId,
     $or: [
       { senderUsername: accessingUsername },

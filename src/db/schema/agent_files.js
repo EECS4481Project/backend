@@ -23,13 +23,11 @@ agentFilesSchema.pre('save', function (next) {
 });
 
 // Handle decryption on get
-agentFilesSchema.post('find', (res) => {
+agentFilesSchema.post('findOne', (res) => {
   if (!res) {
     return;
   }
-  for (let i = 0; i < res.length; i++) {
-    res[i].file = aes256.decrypt(process.env.FILE_STORAGE_ENCRYPTION_KEY, res[i].file);
-  }
+  res.file = aes256.decrypt(process.env.FILE_STORAGE_ENCRYPTION_KEY, res.file);
 });
 
 exports.agentFilesSchema = agentFilesSchema;
