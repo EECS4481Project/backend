@@ -21,9 +21,13 @@ userFilesSchema.pre('save', function (next) {
 });
 
 // Handle decryption on get
-userFilesSchema.post('find', function (next) {
-  this.file = aes256.decrypt(process.env.FILE_STORAGE_ENCRYPTION_KEY, this.file);
-  next();
+userFilesSchema.post('find', (res) => {
+  if (!res) {
+    return;
+  }
+  for (let i = 0; i < res.length; i++) {
+    res[i].file = aes256.decrypt(process.env.FILE_STORAGE_ENCRYPTION_KEY, res[i].file);
+  }
 });
 
 exports.userFilesSchema = userFilesSchema;
