@@ -190,6 +190,7 @@ io.on('connection', async (socket) => {
     const fileType = await fileTypeFromBuffer(data.file);
     // Return if file type isn't allowed
     if (!validateFileType(fileType.mime)) {
+      socket.emit('upload-failure', { fileName: data.name });
       return;
     }
     // Convert file to b64
@@ -217,19 +218,19 @@ io.on('connection', async (socket) => {
             fileType: fileType.mime,
           },
         });
-        // Notify agent of file
-        socket.emit('message', {
-          message: data.message,
-          timestamp: Date.now(),
-          correspondentUsername: data.userId,
-          isFromUser: false,
-          file: {
-            file: base64File,
-            fileName: data.name,
-            fileType: fileType.mime,
-          },
-        });
       }
+      // Notify agent of file
+      socket.emit('message', {
+        message: data.message,
+        timestamp: Date.now(),
+        correspondentUsername: data.userId,
+        isFromUser: false,
+        file: {
+          file: base64File,
+          fileName: data.name,
+          fileType: fileType.mime,
+        },
+      });
       // Write file & message to db for transcript
       try {
         const fileId = await writeFile(base64File, data.name, fileType.mime);
@@ -255,19 +256,19 @@ io.on('connection', async (socket) => {
             fileType: fileType.mime,
           },
         });
-        // Notify user
-        socket.emit('message', {
-          message: data.message,
-          timestamp: Date.now(),
-          correspondentUsername: socket.user_agent_info.username,
-          isFromUser: true,
-          file: {
-            file: base64File,
-            fileName: data.name,
-            fileType: fileType.mime,
-          },
-        });
       }
+      // Notify user
+      socket.emit('message', {
+        message: data.message,
+        timestamp: Date.now(),
+        correspondentUsername: socket.user_agent_info.username,
+        isFromUser: true,
+        file: {
+          file: base64File,
+          fileName: data.name,
+          fileType: fileType.mime,
+        },
+      });
       // Write file & message to db for transcript
       try {
         const fileId = await writeFile(base64File, data.name, fileType.mime);
