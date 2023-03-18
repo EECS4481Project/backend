@@ -202,7 +202,7 @@ io.on('connection', async (socket) => {
       return;
     }
     // Convert file to b64
-    const base64File = Buffer.from(data.file).toString('base64');
+    const base64File = data.file.toString('base64');
     // Agent case
     if (socket.auth_token) {
       if (typeof data.userId !== 'string') {

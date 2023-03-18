@@ -111,7 +111,7 @@ io.on('connection', async (socket) => {
       return;
     }
     // Convert file to b64
-    const base64File = Buffer.from(data.file).toString('base64');
+    const base64File = data.file.toString('base64');
     // Get timestamp before writing to db
     const ts = Date.now();
     // Upload file
