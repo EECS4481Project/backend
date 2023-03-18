@@ -108,6 +108,7 @@ io.on('connection', async (socket) => {
     const fileType = await fileTypeFromBuffer(data.file);
     // Return if file type isn't allowed
     if (!validateFileType(fileType.mime, data.name)) {
+      socket.emit('upload-failure', { fileName: data.name, toastId: data.toastId });
       return;
     }
     // Convert file to b64
@@ -127,7 +128,7 @@ io.on('connection', async (socket) => {
     } catch (err) {
       console.log(err);
       // Notify of upload failure
-      socket.emit('upload-failure', { fileName: data.name });
+      socket.emit('upload-failure', { fileName: data.name, toastId: data.toastId });
       return;
     }
 
@@ -147,6 +148,7 @@ io.on('connection', async (socket) => {
       timestamp: ts,
       fileId,
       isSelfMessageTo: data.toUsername,
+      toastId: data.toastId,
     });
     // Write message to db
     try {
