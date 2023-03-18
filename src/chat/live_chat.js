@@ -40,7 +40,6 @@ const onlineAgents = new Set();
  * @returns true if allowed, false otherwise.
  */
 const validateFileType = (mime) => {
-  console.log(mime);
   for (let i = 0; i < allowedFileTypes.length; i++) {
     if (mime.startsWith(allowedFileTypes[i]) || mime === allowedFileTypes[i]) {
       return true;
