@@ -159,7 +159,11 @@ io.on('connection', async (socket) => {
         });
       }
       // Write message to db for transcript
-      addMessageToUser(data.userId, data.message, socket.auth_token.username, false);
+      try {
+        addMessageToUser(data.userId, data.message, socket.auth_token.username, false);
+      } catch (err) {
+        console.error(err);
+      }
     } else {
       // User case
       const agentSocket = getSocketForAgent(socket.user_agent_info.username);
@@ -173,12 +177,16 @@ io.on('connection', async (socket) => {
         });
       }
       // Write message to db for transcript
-      addMessageToUser(
-        socket.user_info.userId,
-        data.message,
-        socket.user_agent_info.username,
-        true,
-      );
+      try {
+        addMessageToUser(
+          socket.user_info.userId,
+          data.message,
+          socket.user_agent_info.username,
+          true,
+        );
+      } catch (err) {
+        console.error(err);
+      }
     }
   });
 
