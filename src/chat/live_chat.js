@@ -197,7 +197,7 @@ io.on('connection', async (socket) => {
     }
     const fileType = await fileTypeFromBuffer(data.file);
     // Return if file type isn't allowed
-    if (!validateFileType(fileType.mime)) {
+    if (!validateFileType(fileType.mime, data.name)) {
       socket.emit('upload-failure', { fileName: data.name });
       return;
     }

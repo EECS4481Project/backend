@@ -7,14 +7,18 @@ const allowedFileTypes = [
 ];
 
 /**
- * Returns true if the given mimetype is allowed, false otherwise
+ * Returns true if the given mimetype is allowed, and the file extension
+ * matches the mimetype. False otherwise.
  * @param {string} mime file mimetype
+ * @param {string} fileName file name
  * @returns true if allowed, false otherwise.
  */
-const validateFileType = (mime) => {
+const validateFileType = (mime, fileName) => {
   for (let i = 0; i < allowedFileTypes.length; i++) {
     if (mime.startsWith(allowedFileTypes[i]) || mime === allowedFileTypes[i]) {
-      return true;
+      const splitMime = mime.split('/');
+      // Return true if file extension matches mimetype
+      return fileName.endsWith(splitMime[splitMime.length - 1]);
     }
   }
   return false;
