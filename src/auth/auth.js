@@ -77,7 +77,7 @@ router.post('/register', rateLimiter, async (req, res) => {
   const { password } = req.body;
   const { newPassword } = req.body;
   if (typeof password !== 'string' || typeof username !== 'string'
-            || typeof newPassword !== 'string') {
+    || typeof newPassword !== 'string') {
     return res.sendStatus(400);
   }
   // Don't allow password reuse
@@ -107,12 +107,21 @@ router.post('/register', rateLimiter, async (req, res) => {
  * @see{updatePassword} for response codes.
  */
 router.post('/change_password', isAgent, async (req, res) => {
-  const { password } = req.body;
-  if (typeof password !== 'string') {
+  const { password, currentPassword } = req.body;
+  if (typeof password !== 'string' || typeof currentPassword !== 'string') {
     return res.sendStatus(400);
   }
-  if (await updatePassword(req.auth_info.username, password, true, res)) {
-    res.sendStatus(200);
+  try {
+    // Verify that current password is correct
+    const agent = await getAgentIfPasswordMatches(req.auth_info.username, currentPassword);
+    if (!agent) {
+      return res.sendStatus(403);
+    }
+    if (await updatePassword(req.auth_info.username, password, true, res)) {
+      return res.sendStatus(200);
+    }
+  } catch (err) {
+    return res.sendStatus(500);
   }
   // TODO: Consider deleting all other refresh tokens as a security measure
 });
