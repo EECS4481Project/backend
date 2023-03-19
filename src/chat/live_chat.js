@@ -1,7 +1,8 @@
 // Chat between help_desk_user <-> anon using sockets
 const cookieParser = require('cookie-parser');
 const { default: helmet } = require('helmet');
-const { getMessagesByUserId, addMessageToUser } = require('../db/dao/anonymous_user_dao');
+const fileTypeFromBuffer = require('file-type').fromBuffer;
+const { getMessagesByUserId, addMessageToUser, addFileToUser } = require('../db/dao/anonymous_user_dao');
 const {
   handleAgentLogin, handleUserLogin, handleAgentDisconnect,
   handleUserDisconnect, isUserIdAssignedToAgent, removeAssignedUserId,
@@ -10,10 +11,13 @@ const {
 const { getSocketForAgent, getSocketForUser } = require('./socket_mapping');
 const { populateAgentInSocket } = require('../auth/utils');
 const { server } = require('../server');
+const { writeFile } = require('../db/dao/user_files_dao');
+const { validateFileType } = require('../utils');
 
 // eslint-disable-next-line import/order
 const io = require('socket.io')(server, {
   path: '/api/start_chat',
+  maxHttpBufferSize: 3e6, // Max 3 mb
 });
 
 // Set secure default headers
@@ -155,7 +159,11 @@ io.on('connection', async (socket) => {
         });
       }
       // Write message to db for transcript
-      addMessageToUser(data.userId, data.message, socket.auth_token.username, false);
+      try {
+        addMessageToUser(data.userId, data.message, socket.auth_token.username, false);
+      } catch (err) {
+        console.error(err);
+      }
     } else {
       // User case
       const agentSocket = getSocketForAgent(socket.user_agent_info.username);
@@ -169,12 +177,117 @@ io.on('connection', async (socket) => {
         });
       }
       // Write message to db for transcript
-      addMessageToUser(
-        socket.user_info.userId,
-        data.message,
-        socket.user_agent_info.username,
-        true,
-      );
+      try {
+        addMessageToUser(
+          socket.user_info.userId,
+          data.message,
+          socket.user_agent_info.username,
+          true,
+        );
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  });
+
+  socket.on('file-upload', async (data) => {
+    // Return if invalid input
+    if (!Buffer.isBuffer(data.file) || typeof data.name !== 'string') {
+      return;
+    }
+    const fileType = await fileTypeFromBuffer(data.file);
+    // Return if file type isn't allowed
+    if (!validateFileType(fileType.mime, data.name)) {
+      socket.emit('upload-failure', { fileName: data.name, toastId: data.toastId });
+      return;
+    }
+    // Convert file to b64
+    const base64File = data.file.toString('base64');
+    // Agent case
+    if (socket.auth_token) {
+      if (typeof data.userId !== 'string') {
+        return;
+      }
+      // Only allow agent to message assigned users
+      if (!isUserIdAssignedToAgent(data.userId, socket.auth_token.username)) {
+        return;
+      }
+      const userSocket = getSocketForUser(data.userId);
+      if (userSocket) {
+        // Notify user
+        userSocket.emit('message', {
+          message: data.message,
+          timestamp: Date.now(),
+          correspondentUsername: socket.auth_token.username,
+          isFromUser: false,
+          file: {
+            file: base64File,
+            fileName: data.name,
+            fileType: fileType.mime,
+          },
+        });
+      }
+      // Notify agent of file
+      socket.emit('message', {
+        message: data.message,
+        timestamp: Date.now(),
+        correspondentUsername: data.userId,
+        isFromUser: false,
+        file: {
+          file: base64File,
+          fileName: data.name,
+          fileType: fileType.mime,
+        },
+        toastId: data.toastId,
+      });
+      // Write file & message to db for transcript
+      try {
+        const fileId = await writeFile(base64File, data.name, fileType.mime);
+        if (fileId) {
+          addFileToUser(data.userId, fileId, socket.auth_token.username, false);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      // User case
+      const agentSocket = getSocketForAgent(socket.user_agent_info.username);
+      if (agentSocket) {
+        // Notify agent
+        agentSocket.emit('message', {
+          message: data.message,
+          timestamp: Date.now(),
+          correspondentUsername: socket.user_info.userId,
+          isFromUser: true,
+          file: {
+            file: base64File,
+            fileName: data.name,
+            fileType: fileType.mime,
+          },
+        });
+      }
+      // Notify user
+      socket.emit('message', {
+        message: data.message,
+        timestamp: Date.now(),
+        correspondentUsername: socket.user_agent_info.username,
+        isFromUser: true,
+        file: {
+          file: base64File,
+          fileName: data.name,
+          fileType: fileType.mime,
+        },
+        toastId: data.toastId,
+      });
+      // Write file & message to db for transcript
+      try {
+        const fileId = await writeFile(base64File, data.name, fileType.mime);
+        if (fileId) {
+          addFileToUser(socket.user_info.userId, fileId, socket.user_agent_info.username, true);
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
   });
 

@@ -10,4 +10,5 @@ module.exports = {
   CHAT_QUEUE_TOKEN_NAME: 'CHAT',
   AGENT_MESSAGE_FETCH_LIMIT: 200,
   IP_ADDRESS_HEADER: 'x-real-ip',
+  USER_FILES_DOCUMENT_NAME: 'UserFiles',
 };
