@@ -11,4 +11,6 @@ module.exports = {
   AGENT_MESSAGE_FETCH_LIMIT: 200,
   IP_ADDRESS_HEADER: 'x-real-ip',
   USER_FILES_DOCUMENT_NAME: 'UserFiles',
+  WEBSOCKET_HEADERS_CSP: "base-uri 'self'; default-src 'none'; style-src 'self' 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='; script-src 'self'; img-src 'self'; media-src 'none'; font-src 'none'; connect-src 'self'; worker-src 'none'; frame-src 'none'; form-action 'self'; manifest-src 'self'; frame-ancestors 'none'",
+  WEBSOCKET_HEADERS_STS: 'max-age=31536000; includeSubDomains',
 };
