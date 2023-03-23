@@ -1,3 +1,4 @@
+const constants = require('./constants');
 const { IP_ADDRESS_HEADER } = require('./constants');
 
 const allowedFileTypes = [
@@ -5,6 +6,14 @@ const allowedFileTypes = [
   'video',
   'application/pdf',
 ];
+
+/*
+Sets secure headers on websocket.
+*/
+const webSocketSetSecureHeaders = (headers) => {
+  headers['Content-Security-Policy'] = constants.WEBSOCKET_HEADERS_CSP;
+  headers['Strict-Transport-Security'] = constants.WEBSOCKET_HEADERS_STS;
+};
 
 /**
  * Returns true if the given mimetype is allowed, and the file extension
@@ -66,4 +75,5 @@ module.exports = {
   isProd,
   getIpAddress,
   validateFileType,
+  webSocketSetSecureHeaders,
 };

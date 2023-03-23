@@ -12,7 +12,8 @@ const { getSocketForAgent, getSocketForUser } = require('./socket_mapping');
 const { populateAgentInSocket } = require('../auth/utils');
 const { server } = require('../server');
 const { writeFile } = require('../db/dao/user_files_dao');
-const { validateFileType } = require('../utils');
+const { validateFileType, webSocketSetSecureHeaders } = require('../utils');
+const constants = require('../constants');
 
 // eslint-disable-next-line import/order
 const io = require('socket.io')(server, {
@@ -21,11 +22,15 @@ const io = require('socket.io')(server, {
 });
 
 // Set secure default headers
-io.engine.use(helmet());
+io.engine.use(helmet({
+  contentSecurityPolicy: constants.WEBSOCKET_HEADERS_CSP,
+}));
 // Parse cookies
 io.engine.use(cookieParser());
 // Ensure only agents can initialize the connection (not fully secure, but fine for v0)
 io.use(populateAgentInSocket);
+
+io.engine.on('headers', webSocketSetSecureHeaders);
 
 const onlineAgents = new Set();
 

@@ -4,11 +4,12 @@ const cookieParser = require('cookie-parser');
 const { default: helmet } = require('helmet');
 const fileTypeFromBuffer = require('file-type').fromBuffer;
 const { agentOnlySocket } = require('../auth/utils');
+const constants = require('../constants');
 const agentDao = require('../db/dao/agent_dao');
 const { storeAgentFile } = require('../db/dao/agent_files_dao');
 const agentMessagesDao = require('../db/dao/agent_messages_dao');
 const { server } = require('../server');
-const { validateFileType } = require('../utils');
+const { validateFileType, webSocketSetSecureHeaders } = require('../utils');
 
 // eslint-disable-next-line import/order
 const io = require('socket.io')(server, {
@@ -19,11 +20,15 @@ const io = require('socket.io')(server, {
 const usernameToSocketMap = {};
 
 // Set secure default headers
-io.engine.use(helmet());
+io.engine.use(helmet({
+  contentSecurityPolicy: constants.WEBSOCKET_HEADERS_CSP,
+}));
 // Parse cookies
 io.engine.use(cookieParser());
 // Ensure only agents can initialize the connection (not fully secure, but fine for v0)
 io.use(agentOnlySocket);
+
+io.engine.on('headers', webSocketSetSecureHeaders);
 
 io.on('connection', async (socket) => {
   // Add username to socket map
