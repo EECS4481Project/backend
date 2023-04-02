@@ -144,9 +144,23 @@ const isAgent = async (req, res, next) => {
   next();
 };
 
+const lengthCheck = async (req, res, next) => {
+    const data = Object.values(req.body);
+
+    for(let i = 0; i < data.length; i++){
+        if(typeof data[i] === "string" && data[i].length > 256){
+          console.log("Length Checked");  
+          return res.sendStatus(400);
+        }
+    }
+
+    next();
+}
+
 module.exports = {
-  checkPasswordRequirements,
-  agentOnlySocket,
-  populateAgentInSocket,
-  isAgent,
-};
+    checkPasswordRequirements,
+    agentOnlySocket,
+    populateAgentInSocket,
+    isAgent,
+    lengthCheck
+}

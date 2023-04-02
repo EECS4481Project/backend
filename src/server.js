@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const helmet = require('helmet');
 const constants = require('./constants');
+const { lengthCheck } = require('./auth/utils');
 
 // Main App
 const app = express();
@@ -17,6 +18,9 @@ app.use(helmet({
 
 // Put all endpoints behind /api
 app.use('/api', router);
+
+//Check for length of inputs
+app.use(lengthCheck);
 
 module.exports = {
   router,
