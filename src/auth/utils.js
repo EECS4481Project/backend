@@ -25,18 +25,18 @@ const checkPasswordRequirements = (password) => {
   let isDuplicate = true;
   for (let i = 0; i < password.length; i++) {
     if (password.charCodeAt(i) >= 'a'.charCodeAt(0)
-            && password.charCodeAt(i) <= 'z'.charCodeAt(0)) {
+      && password.charCodeAt(i) <= 'z'.charCodeAt(0)) {
       lowercaseCount += 1;
     } else if (password.charCodeAt(i) >= 'A'.charCodeAt(0)
-            && password.charCodeAt(i) <= 'Z'.charCodeAt(0)) {
+      && password.charCodeAt(i) <= 'Z'.charCodeAt(0)) {
       uppercaseCount += 1;
     } else if (password.charCodeAt(i) >= '0'.charCodeAt(0)
-            && password.charCodeAt(i) <= '9'.charCodeAt(0)) {
+      && password.charCodeAt(i) <= '9'.charCodeAt(0)) {
       numberCount += 1;
     } else {
       symbolCount += 1;
     }
-    
+
     if (password[i] === lastChar) {
       duplicateCount++;
     } else {
@@ -47,11 +47,10 @@ const checkPasswordRequirements = (password) => {
       isDuplicate = false;
     }
   }
-  
-  return lowercaseCount >= 1 && uppercaseCount >= 1 && numberCount >= 1
-        && symbolCount >= 1 && password.length >= 8 && isDuplicate;
-};
 
+  return lowercaseCount >= 1 && uppercaseCount >= 1 && numberCount >= 1
+    && symbolCount >= 1 && password.length >= 8 && isDuplicate;
+};
 
 /**
  * ONLY TO BE USED AS SOCKET IO MIDDLEWARE.
@@ -144,23 +143,9 @@ const isAgent = async (req, res, next) => {
   next();
 };
 
-const lengthCheck = async (req, res, next) => {
-    const data = Object.values(req.body);
-
-    for(let i = 0; i < data.length; i++){
-        if(typeof data[i] === "string" && data[i].length > 256){
-          console.log("Length Checked");  
-          return res.sendStatus(400);
-        }
-    }
-
-    next();
-}
-
 module.exports = {
-    checkPasswordRequirements,
-    agentOnlySocket,
-    populateAgentInSocket,
-    isAgent,
-    lengthCheck
-}
+  checkPasswordRequirements,
+  agentOnlySocket,
+  populateAgentInSocket,
+  isAgent,
+};

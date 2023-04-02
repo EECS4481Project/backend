@@ -69,6 +69,32 @@ const getIpAddress = (req) => {
   return req.headers[IP_ADDRESS_HEADER];
 };
 
+/**
+ * Returns a 400 if any of the req.body string inputs are over
+ * MAX_EXPRESS_JSON_FIELD_LENGTH chars. Proceeds otherwise.
+ * To be used as express middleware.
+ * Only supports JSON.
+ * @param {Request} req request
+ * @param {Response} res response
+ * @param {NextFunction} next next
+ */
+const jsonInputMaxStringLengthCheck = async (req, res, next) => {
+  // Skip if non-json
+  if (typeof req.body !== 'object') {
+    return next();
+  }
+  // Proceed
+  const data = Object.values(req.body);
+  // Check that each value length is less than max input length
+  for (let i = 0; i < data.length; i++) {
+    if (typeof data[i] === 'string'
+          && data[i].length > constants.MAX_EXPRESS_JSON_FIELD_LENGTH) {
+      return res.sendStatus(400);
+    }
+  }
+  return next();
+};
+
 module.exports = {
   getCurrentTimestamp,
   isMongoDuplicateKeyError,
@@ -76,4 +102,5 @@ module.exports = {
   getIpAddress,
   validateFileType,
   webSocketSetSecureHeaders,
+  jsonInputMaxStringLengthCheck,
 };

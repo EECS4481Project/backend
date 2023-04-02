@@ -10,7 +10,7 @@ require('./queue/help_desk_queue');
 require('./chat/live_chat');
 require('./help_desk/help_desk_messaging');
 
-const { isProd } = require('./utils');
+const { isProd, jsonInputMaxStringLengthCheck } = require('./utils');
 const { mongoose } = require('./db/db_factory');
 
 // Only use dotenv (ie. .env) file in dev mode
@@ -35,6 +35,8 @@ if (!isProd()) {
 router.use(cookieParser());
 // Required to parse JSON requests
 router.use(bodyParser.json());
+// Check for length of json inputs
+router.use(jsonInputMaxStringLengthCheck);
 // Add endpoints from other routers
 router.use('/auth', auth.router);
 router.use('/admin', admin.router);
