@@ -9,7 +9,7 @@ const agentDao = require('../db/dao/agent_dao');
 const { storeAgentFile } = require('../db/dao/agent_files_dao');
 const agentMessagesDao = require('../db/dao/agent_messages_dao');
 const { server } = require('../server');
-const { validateFileType, webSocketSetSecureHeaders } = require('../utils');
+const { validateFileType, webSocketSetSecureHeaders, maxStringInputLengthCheckSocketMiddleware } = require('../utils');
 
 // eslint-disable-next-line import/order
 const io = require('socket.io')(server, {
@@ -33,6 +33,9 @@ io.engine.on('headers', webSocketSetSecureHeaders);
 io.on('connection', async (socket) => {
   // Add username to socket map
   usernameToSocketMap[socket.auth_token.username] = socket;
+
+  // Only allow inputs to be a max length
+  socket.use(maxStringInputLengthCheckSocketMiddleware);
 
   socket.on('disconnect', () => {
     // Remove username from socket map

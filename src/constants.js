@@ -14,4 +14,5 @@ module.exports = {
   WEBSOCKET_HEADERS_CSP: "base-uri 'self'; default-src 'none'; style-src 'self' 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='; script-src 'self'; img-src 'self'; media-src 'none'; font-src 'none'; connect-src 'self'; worker-src 'none'; frame-src 'none'; form-action 'self'; manifest-src 'self'; frame-ancestors 'none'",
   WEBSOCKET_HEADERS_STS: 'max-age=31536000; includeSubDomains',
   MAX_EXPRESS_JSON_FIELD_LENGTH: 256,
+  MAX_SOCKET_JSON_FIELD_LENGTH: 1024,
 };
