@@ -12,7 +12,7 @@ const { getSocketForAgent, getSocketForUser } = require('./socket_mapping');
 const { populateAgentInSocket } = require('../auth/utils');
 const { server } = require('../server');
 const { writeFile } = require('../db/dao/user_files_dao');
-const { validateFileType, webSocketSetSecureHeaders } = require('../utils');
+const { validateFileType, webSocketSetSecureHeaders, maxStringInputLengthCheckSocketMiddleware } = require('../utils');
 const constants = require('../constants');
 
 // eslint-disable-next-line import/order
@@ -63,6 +63,9 @@ handleUserDisconnect() being called in queue_helper
   - Reasoning for this happening in queue_helper, is that the queue relies on these values
 */
 io.on('connection', async (socket) => {
+  // Only allow inputs to be a max length
+  socket.use(maxStringInputLengthCheckSocketMiddleware);
+
   // Agent only endpoint
   if (socket.auth_token) {
     socket.on('agent-login', async () => {

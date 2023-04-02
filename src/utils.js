@@ -69,6 +69,63 @@ const getIpAddress = (req) => {
   return req.headers[IP_ADDRESS_HEADER];
 };
 
+/**
+ * Returns a 400 if any of the req.body string inputs are over
+ * MAX_EXPRESS_JSON_FIELD_LENGTH chars. Proceeds otherwise.
+ * To be used as express middleware.
+ * Only supports JSON.
+ * Note: Doesn't support nested JSONs or lists, as these aren't valid inputs.
+ * @param {Request} req request
+ * @param {Response} res response
+ * @param {NextFunction} next next
+ */
+const jsonInputMaxStringLengthCheck = async (req, res, next) => {
+  // Skip if non-json
+  if (typeof req.body !== 'object') {
+    return next();
+  }
+  // Proceed
+  const data = Object.values(req.body);
+  // Check that each value length is less than max input length
+  for (let i = 0; i < data.length; i++) {
+    if (typeof data[i] === 'string'
+          && data[i].length > constants.MAX_EXPRESS_JSON_FIELD_LENGTH) {
+      return res.sendStatus(400);
+    }
+  }
+  return next();
+};
+
+/**
+ * Returns if the string input (or any string values in the JSON)
+ * are over MAX_SOCKET_JSON_FIELD_LENGTH length. Proceeds otherwise.
+ * To be used as socket io middleware.
+ * Note: Doesn't support nested JSONs or lists, as these aren't valid inputs.
+ * @param {packet} packet socket io middleware packet
+ * @param {NextFunction} next next
+ */
+const maxStringInputLengthCheckSocketMiddleware = async (packet, next) => {
+  if (packet && packet.length === 2) {
+    if (typeof packet[1] === 'object') {
+      // JSON case, check each input
+      const data = Object.values(packet[1]);
+      // Check that each value length is less than max input length
+      for (let i = 0; i < data.length; i++) {
+        if (typeof data[i] === 'string'
+              && data[i].length > constants.MAX_SOCKET_JSON_FIELD_LENGTH) {
+          return null;
+        }
+      }
+    } else if (typeof packet[1] === 'string') {
+      // String case
+      if (packet[1].length > constants.MAX_SOCKET_JSON_FIELD_LENGTH) {
+        return null;
+      }
+    }
+  }
+  return next();
+};
+
 module.exports = {
   getCurrentTimestamp,
   isMongoDuplicateKeyError,
@@ -76,4 +133,6 @@ module.exports = {
   getIpAddress,
   validateFileType,
   webSocketSetSecureHeaders,
+  jsonInputMaxStringLengthCheck,
+  maxStringInputLengthCheckSocketMiddleware,
 };

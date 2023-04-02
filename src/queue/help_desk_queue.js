@@ -6,6 +6,7 @@ const {
 const { io } = require('./queue_socketio');
 const { verifyAndParseFrontOfQueueToken } = require('./queue_token_utils');
 const { IP_ADDRESS_HEADER } = require('../constants');
+const { maxStringInputLengthCheckSocketMiddleware } = require('../utils');
 
 const rateLimiter = new RateLimiterMemory({
   points: 10, // 10 handshakes
@@ -13,6 +14,9 @@ const rateLimiter = new RateLimiterMemory({
 });
 
 io.on('connection', async (socket) => {
+  // Only allow inputs to be a max length
+  socket.use(maxStringInputLengthCheckSocketMiddleware);
+
   // Disconnect if request is from an agent -- this is a user only service
   if (socket.auth_token) {
     socket.disconnect();
