@@ -1,5 +1,5 @@
 # pull nodejs img
-FROM node:alpine
+FROM node:21.2-alpine3.18
 
 # create directory for src
 WORKDIR /usr/src/backend
