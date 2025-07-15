@@ -11,7 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "aes256": "^1.1.0",
-    "bcrypt": "^5.1.0",
+    "bcrypt": "^6.0.0",
     "body-parser": "^1.20.2",
     "cookie": "^0.5.0",
     "cookie-parser": "^1.4.6",
@@ -23,7 +23,7 @@
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.0.2",
     "rate-limiter-flexible": "^2.4.1",
-    "socket.io": "^4.6.0",
+    "socket.io": "^4.8.0",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
